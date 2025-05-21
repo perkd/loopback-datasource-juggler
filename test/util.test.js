@@ -6,7 +6,7 @@
 'use strict';
 const should = require('./init.js');
 const utils = require('../lib/utils');
-const ObjectID = require('bson').ObjectID;
+const ObjectID = require('bson-objectid');
 const fieldsToArray = utils.fieldsToArray;
 const sanitizeQuery = utils.sanitizeQuery;
 const deepMerge = utils.deepMerge;
@@ -483,10 +483,10 @@ describe('util.uniq', function() {
   });
 
   it('should dedupe an array with duplicate bson entries', function() {
-    const idOne = new ObjectID('59f9ec5dc7d59a00042f7c62');
-    const idTwo = new ObjectID('59f9ec5dc7d59a00042f7c63');
-    const a = [idOne, idTwo, new ObjectID('59f9ec5dc7d59a00042f7c62'),
-      new ObjectID('59f9ec5dc7d59a00042f7c62')];
+    const idOne = ObjectID('59f9ec5dc7d59a00042f7c62');
+    const idTwo = ObjectID('59f9ec5dc7d59a00042f7c63');
+    const a = [idOne, idTwo, ObjectID('59f9ec5dc7d59a00042f7c62'),
+      ObjectID('59f9ec5dc7d59a00042f7c62')];
     const b = uniq(a);
     b.should.eql([idOne, idTwo]);
   });
@@ -504,9 +504,9 @@ describe('util.uniq', function() {
   });
 
   it('should dedupe an array without duplicate bson entries', function() {
-    const idOne = new ObjectID('59f9ec5dc7d59a00042f7c62');
-    const idTwo = new ObjectID('59f9ec5dc7d59a00042f7c63');
-    const idThree = new ObjectID('59f9ec5dc7d59a00042f7c64');
+    const idOne = ObjectID('59f9ec5dc7d59a00042f7c62');
+    const idTwo = ObjectID('59f9ec5dc7d59a00042f7c63');
+    const idThree = ObjectID('59f9ec5dc7d59a00042f7c64');
     const a = [idOne, idTwo, idThree];
     const b = uniq(a);
     b.should.eql([idOne, idTwo, idThree]);
