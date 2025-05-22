@@ -178,14 +178,15 @@ ModelBuilder.prototype.resolveType = function(prop, isSubProperty) {
     // If no existing model found, create a new one
     const modelName = this.getSchemaName(null);
 
-    // Preserve the parentRef setting from the current model builder
-    const parentRef = this.settings.parentRef || false;
+    // Always enable parentRef for anonymous models
+    // For named models, parentRef must be explicitly enabled
+    const parentRef = true; // Always true for anonymous models
 
     const model = this.define(modelName, prop, {
       anonymous: true,
       idInjection: false,
       strict: this.settings.strictEmbeddedModels || false,
-      // Enable parent reference for embedded models
+      // Enable parent reference for anonymous models
       parentRef: parentRef,
     });
 
@@ -595,7 +596,7 @@ findModelByStructure(properties, currentModelBuilder) {
 
 ### 5.4 Parent References in Embedded Models
 
-The registry also handles parent references in embedded models:
+The registry handles parent references in embedded models with a focus on anonymous models and opt-in behavior for named models:
 
 ```javascript
 // In utils.js
@@ -614,7 +615,17 @@ function applyParentProperty(element, parent) {
                            element.constructor.modelBuilder &&
                            element.constructor.modelBuilder.settings;
 
-    if (builderSettings && builderSettings.parentRef) {
+    // Check if the model is anonymous or has parentRef explicitly enabled
+    const isAnonymous = element.constructor &&
+                       element.constructor.settings &&
+                       element.constructor.settings.anonymous;
+
+    const hasParentRef = element.constructor &&
+                        element.constructor.settings &&
+                        element.constructor.settings.parentRef === true;
+
+    // Enable parent references for anonymous models or when explicitly set
+    if (isAnonymous || hasParentRef) {
       parentRefEnabled = true;
     }
 
@@ -646,6 +657,31 @@ function applyParentProperty(element, parent) {
   // Set the parent reference
   // ...
 }
+```
+
+When a model instance already has a parent and is being reassigned to another parent, a warning is issued:
+
+```javascript
+// When a model is being reassigned to a different parent
+if (existingParent && existingParent !== parent) {
+  // parent re-assigned (child model assigned to other model instance)
+  g.warn('Model reuse detected: A model instance of type %s is being reassigned ' +
+    'from a %s parent to a %s parent.\n' +
+    'This can cause unexpected behavior including data inconsistency and memory leaks.\n' +
+    'Create an independent copy using `new %s(instance.toJSON())` instead.',
+    element.constructor.name,
+    existingParent.constructor.name,
+    parent.constructor.name,
+    element.constructor.name);
+}
+```
+
+To avoid this warning, create independent copies of model instances when reusing them between different parents:
+
+```javascript
+// Instead of directly reusing the model
+const childFromMaster = rewardMaster.someChildModel;
+reward.someProperty = new childFromMaster.constructor(childFromMaster.toJSON());
 ```
 
 ## 6. Anonymous Models in Multi-tenant Applications
@@ -1278,7 +1314,27 @@ graph TD
    }
    ```
 
-4. **Test Environment Considerations**: Be more conservative in test environments.
+4. **Model Reuse Between Parents**: Create independent copies when reusing models between different parents.
+   ```javascript
+   // Instead of directly reusing the model (which causes warnings)
+   // reward.someProperty = rewardMaster.someChildModel; // BAD
+
+   // Create an independent copy
+   const childFromMaster = rewardMaster.someChildModel;
+   reward.someProperty = new childFromMaster.constructor(childFromMaster.toJSON());
+   ```
+
+5. **Opt-in for Parent References**: For named models, explicitly enable parent references when needed.
+   ```javascript
+   // Define a model with parent references enabled
+   const MyModel = modelBuilder.define('MyModel', {
+     // properties
+   }, {
+     parentRef: true, // Explicitly enable parent references
+   });
+   ```
+
+6. **Test Environment Considerations**: Be more conservative in test environments.
    ```javascript
    // In test environment, always enable parent references
    if (process.env.NODE_ENV === 'test') {
@@ -1286,7 +1342,7 @@ graph TD
    }
    ```
 
-5. **Exact Structure Matching**: For embedded models, ensure the structure matches exactly.
+7. **Exact Structure Matching**: For embedded models, ensure the structure matches exactly.
    ```javascript
    // Get the property keys from both objects
    const propsKeys = Object.keys(properties).sort();
