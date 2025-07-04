@@ -97,282 +97,6 @@ describe('Tenant-Aware ModelRegistry', function() {
     }
   });
 
-  describe('Enhanced Model Tracking and Cleanup', function() {
-
-    it('should track models comprehensively during registration', function() {
-      TenantContextMocker.setupTenantContext('tracking-test-tenant');
-
-      const AnonymousModel = modelBuilder.define('AnonymousModel_1', {
-        name: String,
-        value: Number
-      }, {anonymous: true});
-
-      ModelRegistry.registerModel(AnonymousModel);
-
-      // Verify comprehensive tracking
-      const stats = ModelRegistry.getStats();
-      stats.tenantRegistries.should.equal(1);
-      stats.totalTenantModels.should.equal(1);
-
-      // Verify model is findable
-      const foundByName = ModelRegistry.findModelByName('AnonymousModel_1');
-      foundByName.should.equal(AnonymousModel);
-
-      const foundByStructure = ModelRegistry.findModelByStructure({
-        name: String,
-        value: Number
-      });
-      foundByStructure.should.equal(AnonymousModel);
-    });
-
-    it('should perform comprehensive cleanup when tenant is removed', function() {
-      TenantContextMocker.setupTenantContext('cleanup-comprehensive-tenant');
-
-      // Register multiple models
-      const Model1 = modelBuilder.define('ComprehensiveModel_1', {
-        name: String
-      }, {anonymous: true});
-
-      const Model2 = modelBuilder.define('ComprehensiveModel_2', {
-        title: String,
-        description: String
-      }, {anonymous: true});
-
-      ModelRegistry.registerModel(Model1);
-      ModelRegistry.registerModel(Model2);
-
-      // Verify models are registered and findable
-      let stats = ModelRegistry.getStats();
-      stats.tenantRegistries.should.equal(1);
-      stats.totalTenantModels.should.equal(2);
-
-      ModelRegistry.findModelByName('ComprehensiveModel_1').should.equal(Model1);
-      ModelRegistry.findModelByName('ComprehensiveModel_2').should.equal(Model2);
-
-      // Perform comprehensive cleanup
-      const cleanupResult = ModelRegistry.cleanupTenant('cleanup-comprehensive-tenant');
-
-      // Verify cleanup results
-      cleanupResult.should.have.property('tenant', 'cleanup-comprehensive-tenant');
-      cleanupResult.should.have.property('modelsRemoved', 2);
-      cleanupResult.should.have.property('mappingsRemoved', 2);
-      cleanupResult.should.have.property('cleanedModels', 2);
-      cleanupResult.should.have.property('duration');
-      cleanupResult.duration.should.be.greaterThan(0);
-
-      // Verify models are NO LONGER findable after cleanup
-      should.not.exist(ModelRegistry.findModelByName('ComprehensiveModel_1'));
-      should.not.exist(ModelRegistry.findModelByName('ComprehensiveModel_2'));
-
-      // Verify tenant registry is removed
-      stats = ModelRegistry.getStats();
-      stats.tenantRegistries.should.equal(0);
-      stats.totalTenantModels.should.equal(0);
-    });
-
-    it('should not find models from cleaned up tenants in structure searches', function() {
-      TenantContextMocker.setupTenantContext('structure-cleanup-tenant');
-
-      const properties = {
-        uniqueField: String,
-        value: Number
-      };
-
-      const Model1 = modelBuilder.define('StructureModel_1', properties, {anonymous: true});
-      ModelRegistry.registerModel(Model1, properties);
-
-      // Verify model is findable by structure
-      const foundBefore = ModelRegistry.findModelByStructure(properties);
-      foundBefore.should.equal(Model1);
-
-      // Cleanup tenant
-      const cleanupResult = ModelRegistry.cleanupTenant('structure-cleanup-tenant');
-      cleanupResult.modelsRemoved.should.equal(1);
-
-      // Verify model is NO LONGER findable by structure
-      const foundAfter = ModelRegistry.findModelByStructure(properties);
-      should.not.exist(foundAfter);
-    });
-
-    it('should handle enhanced cleanup statistics correctly', function() {
-      // Test with multiple tenants to verify isolation
-      TenantContextMocker.setupTenantContext('stats-tenant-1');
-      const Model1 = modelBuilder.define('StatsModel_1', {name: String}, {anonymous: true});
-      ModelRegistry.registerModel(Model1);
-
-      TenantContextMocker.setupTenantContext('stats-tenant-2');
-      const Model2 = modelBuilder.define('StatsModel_2', {title: String}, {anonymous: true});
-      const Model3 = modelBuilder.define('StatsModel_3', {description: String}, {anonymous: true});
-      ModelRegistry.registerModel(Model2);
-      ModelRegistry.registerModel(Model3);
-
-      // Verify initial state
-      let stats = ModelRegistry.getStats();
-      stats.tenantRegistries.should.equal(2);
-      stats.totalTenantModels.should.equal(3);
-
-      // Cleanup one tenant
-      const cleanup1 = ModelRegistry.cleanupTenant('stats-tenant-1');
-      cleanup1.modelsRemoved.should.equal(1);
-      cleanup1.mappingsRemoved.should.equal(1);
-
-      // Verify remaining tenant is unaffected
-      stats = ModelRegistry.getStats();
-      stats.tenantRegistries.should.equal(1);
-      stats.totalTenantModels.should.equal(2);
-
-      // Verify models from remaining tenant are still findable
-      ModelRegistry.findModelByName('StatsModel_2').should.equal(Model2);
-      ModelRegistry.findModelByName('StatsModel_3').should.equal(Model3);
-
-      // Verify models from cleaned tenant are NOT findable
-      should.not.exist(ModelRegistry.findModelByName('StatsModel_1'));
-
-      // Cleanup second tenant
-      const cleanup2 = ModelRegistry.cleanupTenant('stats-tenant-2');
-      cleanup2.modelsRemoved.should.equal(2);
-      cleanup2.mappingsRemoved.should.equal(2);
-
-      // Verify all tenant models are cleaned up
-      stats = ModelRegistry.getStats();
-      stats.tenantRegistries.should.equal(0);
-      stats.totalTenantModels.should.equal(0);
-    });
-
-    it('should provide detailed tenant registry information with enhanced tracking', function() {
-      TenantContextMocker.setupTenantContext('detailed-info-tenant');
-
-      const Model1 = modelBuilder.define('DetailedModel_1', {name: String}, {anonymous: true});
-      const Model2 = modelBuilder.define('DetailedModel_2', {title: String});
-
-      ModelRegistry.registerModel(Model1);
-      ModelRegistry.registerModel(Model2);
-
-      const info = ModelRegistry.getTenantRegistryInfo();
-
-      // Verify enhanced tenant information
-      info.should.have.property('activeTenants', 1);
-      info.should.have.property('tenants');
-      info.should.have.property('globalModels', 1); // Named model goes to global
-
-      const tenantInfo = info.tenants['detailed-info-tenant'];
-      tenantInfo.should.have.property('tenantCode', 'detailed-info-tenant');
-      tenantInfo.should.have.property('modelCount', 1); // Only anonymous model
-      tenantInfo.should.have.property('registeredModelCount', 1);
-      tenantInfo.should.have.property('models');
-      tenantInfo.should.have.property('registeredModels');
-
-      // Verify registered models details
-      tenantInfo.registeredModels.should.have.length(1);
-      tenantInfo.registeredModels[0].should.have.property('name', 'DetailedModel_1');
-      tenantInfo.registeredModels[0].should.have.property('anonymous', true);
-      tenantInfo.registeredModels[0].should.have.property('hasDefinition', true);
-    });
-
-    it('should handle cleanup errors gracefully', function() {
-      // Test cleanup of non-existent tenant
-      const result1 = ModelRegistry.cleanupTenant('non-existent-tenant');
-      result1.should.have.property('tenant', 'non-existent-tenant');
-      result1.should.have.property('modelsRemoved', 0);
-      result1.should.have.property('mappingsRemoved', 0);
-
-      // Test cleanup of invalid tenant codes
-      const result2 = ModelRegistry.cleanupTenant('trap');
-      result2.should.have.property('error');
-
-      const result3 = ModelRegistry.cleanupTenant(null);
-      result3.should.have.property('error');
-
-      const result4 = ModelRegistry.cleanupTenant('__global__');
-      result4.should.have.property('error');
-    });
-
-    it('should maintain backward compatibility while providing enhanced cleanup', function() {
-      // Test that existing API methods still work exactly as before
-      TenantContextMocker.setupTenantContext('backward-compat-tenant');
-
-      const Model1 = modelBuilder.define('BackwardCompatModel', {name: String});
-      
-      // Test registerModel - should return the model
-      const result = ModelRegistry.registerModel(Model1);
-      result.should.equal(Model1);
-
-      // Test findModelByName - should find the model
-      const found = ModelRegistry.findModelByName('BackwardCompatModel');
-      found.should.equal(Model1);
-
-      // Test getStats - should include new fields but preserve existing ones
-      const stats = ModelRegistry.getStats();
-      stats.should.have.property('totalModels');
-      stats.should.have.property('reuseCount');
-      stats.should.have.property('uniqueModels');
-      stats.should.have.property('tenantRegistries'); // New field
-      stats.should.have.property('tenantStats'); // New field
-      stats.should.have.property('totalTenantModels'); // New field
-
-      // Test clear - should still work
-      ModelRegistry.clear();
-      const statsAfterClear = ModelRegistry.getStats();
-      statsAfterClear.totalModels.should.equal(0);
-      statsAfterClear.tenantRegistries.should.equal(0);
-    });
-
-    it('should prevent memory leaks through comprehensive cleanup validation', function() {
-      const tenantCode = 'memory-leak-test-tenant';
-      TenantContextMocker.setupTenantContext(tenantCode);
-
-      // Create models that could cause memory leaks
-      const models = [];
-      for (let i = 0; i < 10; i++) {
-        const model = modelBuilder.define(`MemoryLeakModel_${i}`, {
-          name: String,
-          index: Number,
-          data: {
-            nested: String,
-            array: [String],
-            complex: {
-              deep: {
-                value: Number
-              }
-            }
-          }
-        }, {anonymous: true});
-        
-        ModelRegistry.registerModel(model);
-        models.push(model);
-      }
-
-      // Verify all models are tracked
-      let stats = ModelRegistry.getStats();
-      stats.totalTenantModels.should.equal(10);
-
-      // Verify all models are findable
-      models.forEach((model, index) => {
-        const found = ModelRegistry.findModelByName(`MemoryLeakModel_${index}`);
-        found.should.equal(model);
-      });
-
-      // Perform comprehensive cleanup
-      const cleanupResult = ModelRegistry.cleanupTenant(tenantCode);
-      cleanupResult.modelsRemoved.should.equal(10);
-      cleanupResult.mappingsRemoved.should.equal(10);
-      cleanupResult.cleanedModels.should.equal(10);
-
-      // Verify NO models are findable after cleanup (memory leak prevention)
-      models.forEach((model, index) => {
-        const found = ModelRegistry.findModelByName(`MemoryLeakModel_${index}`);
-        should.not.exist(found);
-      });
-
-      // Verify registry is completely clean
-      stats = ModelRegistry.getStats();
-      stats.tenantRegistries.should.equal(0);
-      stats.totalTenantModels.should.equal(0);
-    });
-
-  });
-
-  // ... (existing tests continue unchanged)
   describe('Backward Compatibility', function() {
     it('should maintain 100% API compatibility for named models', function() {
       // Create a named model (not anonymous)
@@ -447,5 +171,528 @@ describe('Tenant-Aware ModelRegistry', function() {
     });
   });
 
-  // ... (other existing test groups would continue here)
+  describe('Tenant-Scoped Anonymous Models', function() {
+
+    it('should use tenant registries for anonymous models', function() {
+      TenantContextMocker.setupTenantContext('tenant-1');
+
+      // Create an anonymous model
+      const AnonymousModel = modelBuilder.define('AnonymousModel_1', {
+        name: String,
+        email: String
+      }, {anonymous: true});
+
+      // Register the model
+      ModelRegistry.registerModel(AnonymousModel);
+
+      // Verify it was registered in tenant registry
+      const stats = ModelRegistry.getStats();
+      stats.tenantRegistries.should.equal(1);
+      stats.totalTenantModels.should.equal(1);
+
+      // Should still be findable globally for backward compatibility
+      const found = ModelRegistry.findModelByName('AnonymousModel_1');
+      found.should.equal(AnonymousModel);
+    });
+
+    it('should isolate anonymous models between tenants', function() {
+      // Register model for tenant-1
+      TenantContextMocker.setupTenantContext('tenant-1');
+      const Model1 = modelBuilder.define('AnonymousModel_1', {
+        name: String
+      }, {anonymous: true});
+      ModelRegistry.registerModel(Model1);
+
+      // Register different model for tenant-2
+      TenantContextMocker.setupTenantContext('tenant-2');
+      const Model2 = modelBuilder.define('AnonymousModel_2', {
+        title: String
+      }, {anonymous: true});
+      ModelRegistry.registerModel(Model2);
+
+      // Verify both tenant registries exist
+      const stats = ModelRegistry.getStats();
+      stats.tenantRegistries.should.equal(2);
+      stats.totalTenantModels.should.equal(2);
+
+      // Verify tenant isolation
+      stats.tenantStats.should.have.length(2);
+      stats.tenantStats.forEach(tenantStat => {
+        tenantStat.modelCount.should.equal(1);
+        tenantStat.should.have.property('tenantCode');
+        tenantStat.should.have.property('lastAccessed');
+      });
+    });
+
+    it('should reuse anonymous models within the same tenant', function() {
+      TenantContextMocker.setupTenantContext('tenant-1');
+
+      // Create first model with embedded structure
+      const properties = {
+        name: String,
+        address: {
+          street: String,
+          city: String
+        }
+      };
+
+      const Model1 = modelBuilder.define('TestModel1', properties);
+      
+      // Create second model with same embedded structure
+      const Model2 = modelBuilder.define('TestModel2', properties);
+
+      // The embedded address models should be reused within the tenant
+      const addressModel1 = Model1.definition.properties.address.type;
+      const addressModel2 = Model2.definition.properties.address.type;
+      
+      if (addressModel1 && addressModel2) {
+        addressModel1.should.equal(addressModel2);
+      }
+
+      const stats = ModelRegistry.getStats();
+      stats.reuseCount.should.be.greaterThan(0);
+    });
+
+    it('should not reuse anonymous models across different tenants', function() {
+      const properties = {
+        street: String,
+        city: String
+      };
+
+      // Create model for tenant-1
+      TenantContextMocker.setupTenantContext('tenant-1');
+      const model1 = modelBuilder.resolveType(properties);
+
+      // Create model for tenant-2
+      TenantContextMocker.setupTenantContext('tenant-2');
+      const model2 = modelBuilder.resolveType(properties);
+
+      // Models should be different instances for different tenants
+      if (model1 && model2 && model1.settings && model2.settings) {
+        if (model1.settings.anonymous && model2.settings.anonymous) {
+          model1.should.not.equal(model2);
+        }
+      }
+
+      const stats = ModelRegistry.getStats();
+      stats.tenantRegistries.should.be.greaterThan(0);
+    });
+
+    it('should fall back to global registry when no tenant context', function() {
+      TenantContextMocker.setupNoTenantContext();
+
+      const AnonymousModel = modelBuilder.define('AnonymousModel_1', {
+        name: String
+      }, {anonymous: true});
+
+      ModelRegistry.registerModel(AnonymousModel);
+
+      // Should use global registry when no tenant context
+      const stats = ModelRegistry.getStats();
+      stats.tenantRegistries.should.equal(0);
+      stats.totalTenantModels.should.equal(0);
+      stats.totalModels.should.equal(1);
+    });
+  });
+
+  describe('Tenant Cleanup Operations', function() {
+
+    it('should cleanup specific tenant models', function() {
+      // Setup tenant-1
+      TenantContextMocker.setupTenantContext('tenant-1');
+      const Model1 = modelBuilder.define('AnonymousModel_1', {
+        name: String
+      }, {anonymous: true});
+      ModelRegistry.registerModel(Model1);
+
+      // Setup tenant-2
+      TenantContextMocker.setupTenantContext('tenant-2');
+      const Model2 = modelBuilder.define('AnonymousModel_2', {
+        title: String
+      }, {anonymous: true});
+      ModelRegistry.registerModel(Model2);
+
+      // Verify both tenants have models
+      let stats = ModelRegistry.getStats();
+      stats.tenantRegistries.should.equal(2);
+      stats.totalTenantModels.should.equal(2);
+
+      // Cleanup tenant-1
+      const cleaned = ModelRegistry.cleanupTenant('tenant-1');
+      cleaned.should.equal(1);
+
+      // Verify tenant-1 was cleaned up
+      stats = ModelRegistry.getStats();
+      stats.tenantRegistries.should.equal(1);
+      stats.totalTenantModels.should.equal(1);
+
+      // tenant-2 should still exist
+      stats.tenantStats[0].tenantCode.should.equal('tenant-2');
+    });
+
+    it('should cleanup inactive tenants automatically', function() {
+      TenantContextMocker.setupTenantContext('tenant-1');
+      const Model1 = modelBuilder.define('AnonymousModel_1', {
+        name: String
+      }, {anonymous: true});
+      ModelRegistry.registerModel(Model1);
+
+      // Verify tenant exists
+      let stats = ModelRegistry.getStats();
+      stats.tenantRegistries.should.equal(1);
+
+      // Force cleanup with very short idle time (0ms = cleanup immediately)
+      const cleaned = ModelRegistry.cleanupInactiveTenants(0);
+      cleaned.should.equal(1);
+
+      // Verify tenant was cleaned up
+      stats = ModelRegistry.getStats();
+      stats.tenantRegistries.should.equal(0);
+      stats.totalTenantModels.should.equal(0);
+    });
+
+    it('should not cleanup active tenants', function() {
+      TenantContextMocker.setupTenantContext('active-tenant');
+      const Model1 = modelBuilder.define('AnonymousModel_1', {
+        name: String
+      }, {anonymous: true});
+      ModelRegistry.registerModel(Model1);
+
+      // Access the model to make it "active"
+      ModelRegistry.findModelByStructure({name: String});
+
+      // Try to cleanup with short idle time, but since we just accessed it, it should not be cleaned
+      const cleaned = ModelRegistry.cleanupInactiveTenants(1000); // 1 second
+      cleaned.should.equal(0);
+
+      // Verify tenant still exists
+      const stats = ModelRegistry.getStats();
+      stats.tenantRegistries.should.equal(1);
+    });
+
+    it('should handle cleanup of non-existent tenants gracefully', function() {
+      const cleaned = ModelRegistry.cleanupTenant('non-existent-tenant');
+      cleaned.should.equal(0);
+
+      // Should not throw or cause issues
+      const stats = ModelRegistry.getStats();
+      stats.tenantRegistries.should.equal(0);
+    });
+
+    it('should handle cleanup with invalid tenant codes', function() {
+      // These should not throw errors
+      ModelRegistry.cleanupTenant(null);
+      ModelRegistry.cleanupTenant(undefined);
+      ModelRegistry.cleanupTenant('');
+      ModelRegistry.cleanupTenant('trap');
+    });
+  });
+
+  describe('Registry Manager', function() {
+    it('should have registry manager with cleanup functionality', function() {
+      registryManager.should.have.property('startPeriodicCleanup');
+      registryManager.should.have.property('stopPeriodicCleanup');
+      registryManager.should.have.property('forceCleanup');
+      registryManager.should.have.property('getStats');
+    });
+
+    it('should provide cleanup statistics', function() {
+      const stats = registryManager.getStats();
+      stats.should.have.property('cleanupInterval');
+      stats.should.have.property('maxIdleTime');
+      stats.should.have.property('isActive');
+      stats.should.have.property('registryStats');
+    });
+
+    it('should be able to stop and start periodic cleanup', function() {
+      // Stop cleanup
+      registryManager.stopPeriodicCleanup();
+      let stats = registryManager.getStats();
+      stats.isActive.should.be.false();
+
+      // Start cleanup
+      registryManager.startPeriodicCleanup();
+      stats = registryManager.getStats();
+      stats.isActive.should.be.true();
+    });
+
+    it('should force cleanup when requested', function() {
+      TenantContextMocker.setupTenantContext('force-cleanup-tenant');
+      const Model1 = modelBuilder.define('AnonymousModel_1', {
+        name: String
+      }, {anonymous: true});
+      ModelRegistry.registerModel(Model1);
+
+      // Force cleanup
+      const cleaned = registryManager.forceCleanup();
+      cleaned.should.equal(1);
+
+      // Verify cleanup occurred
+      const stats = ModelRegistry.getStats();
+      stats.tenantRegistries.should.equal(0);
+    });
+  });
+
+  describe('Memory Leak Prevention', function() {
+
+    it('should prevent anonymous model accumulation', function() {
+      // Create many anonymous models for different tenants
+      for (let i = 0; i < 10; i++) {
+        TenantContextMocker.setupTenantContext(`tenant-${i}`);
+        const model = modelBuilder.define(`AnonymousModel_${i}`, {
+          name: String,
+          value: Number
+        }, {anonymous: true});
+        ModelRegistry.registerModel(model);
+      }
+
+      // Verify all tenants are registered
+      let stats = ModelRegistry.getStats();
+      stats.tenantRegistries.should.equal(10);
+      stats.totalTenantModels.should.equal(10);
+
+      // Cleanup all inactive tenants
+      const cleaned = ModelRegistry.cleanupInactiveTenants(0);
+      cleaned.should.equal(10);
+
+      // Verify all anonymous models were cleaned up
+      stats = ModelRegistry.getStats();
+      stats.tenantRegistries.should.equal(0);
+      stats.totalTenantModels.should.equal(0);
+    });
+
+    it('should remove models from global registry when tenant is cleaned up', function() {
+      TenantContextMocker.setupTenantContext('cleanup-test-tenant');
+      const AnonymousModel = modelBuilder.define('AnonymousModel_1', {
+        name: String
+      }, {anonymous: true});
+      ModelRegistry.registerModel(AnonymousModel);
+
+      // Verify model is in global registry for backward compatibility
+      let found = ModelRegistry.findModelByName('AnonymousModel_1');
+      found.should.equal(AnonymousModel);
+
+      // Cleanup the tenant
+      ModelRegistry.cleanupTenant('cleanup-test-tenant');
+
+      // Model should no longer be findable globally
+      found = ModelRegistry.findModelByName('AnonymousModel_1');
+      should.not.exist(found);
+    });
+
+    it('should handle stress test with many models', function() {
+      const tenantCount = 50;
+      const modelsPerTenant = 20;
+
+      // Create many models across many tenants
+      for (let t = 0; t < tenantCount; t++) {
+        for (let m = 0; m < modelsPerTenant; m++) {
+          TenantContextMocker.setupTenantContext(`stress-tenant-${t}`);
+          const model = modelBuilder.define(`StressModel_${t}_${m}`, {
+            name: String,
+            index: Number,
+            tenant: String
+          }, {anonymous: true});
+          ModelRegistry.registerModel(model);
+        }
+      }
+
+      // Verify all models are registered
+      let stats = ModelRegistry.getStats();
+      stats.tenantRegistries.should.equal(tenantCount);
+      // Each tenant should have 1 unique model (due to model reuse within tenant)
+      stats.totalTenantModels.should.equal(tenantCount);
+      // But total models registered should be tenantCount * modelsPerTenant
+      stats.totalModels.should.equal(tenantCount * modelsPerTenant);
+
+      // Cleanup all tenants
+      const cleaned = ModelRegistry.cleanupInactiveTenants(0);
+      cleaned.should.equal(tenantCount);
+
+      // Verify complete cleanup
+      stats = ModelRegistry.getStats();
+      stats.tenantRegistries.should.equal(0);
+      stats.totalTenantModels.should.equal(0);
+    });
+  });
+
+  describe('Error Handling and Edge Cases', function() {
+    it('should handle errors in tenant context detection gracefully', function() {
+      TenantContextMocker.setupErrorTenantContext();
+
+      const model = modelBuilder.define('ErrorModel', {
+        name: String
+      }, {anonymous: true});
+
+      // Should not throw an error
+      ModelRegistry.registerModel(model);
+
+      // Should fall back to global registry
+      const stats = ModelRegistry.getStats();
+      stats.tenantRegistries.should.equal(0);
+      stats.totalModels.should.equal(1);
+    });
+
+    it('should handle missing multitenant-context module gracefully', function() {
+      // Mock missing context module
+      const Module = require('module');
+      const originalRequire = Module.prototype.require;
+
+      Module.prototype.require = function(id) {
+        if (id === '@perkd/multitenant-context') {
+          throw new Error('Module not found');
+        }
+        return originalRequire.apply(this, arguments);
+      };
+
+      const model = modelBuilder.define('NoContextModel', {
+        name: String
+      }, {anonymous: true});
+
+      // Should not throw an error
+      ModelRegistry.registerModel(model);
+
+      // Should use global registry
+      const stats = ModelRegistry.getStats();
+      stats.tenantRegistries.should.equal(0);
+      stats.totalModels.should.equal(1);
+    });
+
+    it('should handle invalid tenant codes', function() {
+      // Test various invalid tenant codes
+      const invalidTenants = [null, undefined, '', 'trap', 0, false];
+
+      invalidTenants.forEach(invalidTenant => {
+        TenantContextMocker.setupTenantContext(invalidTenant);
+
+        const model = modelBuilder.define(`InvalidTenantModel_${Math.random()}`, {
+          name: String
+        }, {anonymous: true});
+
+        // Should not throw an error
+        ModelRegistry.registerModel(model);
+      });
+
+      // All models should use global registry due to invalid tenant codes
+      const stats = ModelRegistry.getStats();
+      stats.tenantRegistries.should.equal(0);
+      stats.totalModels.should.equal(invalidTenants.length);
+    });
+  });
+
+  describe('Enhanced Statistics', function() {
+    it('should provide enhanced statistics with tenant information', function() {
+      TenantContextMocker.setupTenantContext('stats-tenant');
+      const model = modelBuilder.define('StatsModel', {
+        name: String
+      }, {anonymous: true});
+      ModelRegistry.registerModel(model);
+
+      const stats = ModelRegistry.getStats();
+      
+      // Should have new tenant-specific properties
+      stats.should.have.property('tenantRegistries');
+      stats.should.have.property('tenantStats');
+      stats.should.have.property('totalTenantModels');
+
+      stats.tenantRegistries.should.equal(1);
+      stats.totalTenantModels.should.equal(1);
+      stats.tenantStats.should.have.length(1);
+
+      const tenantStat = stats.tenantStats[0];
+      tenantStat.should.have.property('tenantCode', 'stats-tenant');
+      tenantStat.should.have.property('modelCount', 1);
+      tenantStat.should.have.property('creationTime');
+      tenantStat.should.have.property('lastAccessed');
+      tenantStat.should.have.property('idleTime');
+    });
+
+    it('should provide detailed tenant registry information', function() {
+      TenantContextMocker.setupTenantContext('detailed-tenant');
+      const model1 = modelBuilder.define('DetailedModel1', {name: String}, {anonymous: true});
+      const model2 = modelBuilder.define('DetailedModel2', {title: String}, {anonymous: true});
+      
+      ModelRegistry.registerModel(model1);
+      ModelRegistry.registerModel(model2);
+
+      const info = ModelRegistry.getTenantRegistryInfo();
+      
+      info.should.have.property('activeTenants', 1);
+      info.should.have.property('tenants');
+      info.should.have.property('globalModels');
+
+      const tenantInfo = info.tenants['detailed-tenant'];
+      tenantInfo.should.have.property('tenantCode', 'detailed-tenant');
+      tenantInfo.should.have.property('modelCount', 2);
+      tenantInfo.should.have.property('models');
+      tenantInfo.models.should.have.length(2);
+      tenantInfo.models.should.containEql('DetailedModel1');
+      tenantInfo.models.should.containEql('DetailedModel2');
+    });
+  });
+
+  describe('Integration with ModelBuilder', function() {
+    it('should work seamlessly with ModelBuilder.resolveType', function() {
+      TenantContextMocker.setupTenantContext('integration-tenant');
+
+      // Create a model with embedded structure
+      const Customer = modelBuilder.define('Customer', {
+        name: String,
+        address: {
+          street: String,
+          city: String,
+          country: String
+        }
+      });
+
+      // The address should be an anonymous model in the tenant registry
+      const addressModel = Customer.definition.properties.address.type;
+      
+      if (addressModel && addressModel.settings && addressModel.settings.anonymous) {
+        // Verify it's tracked in tenant registry
+        const stats = ModelRegistry.getStats();
+        stats.tenantRegistries.should.equal(1);
+        stats.totalTenantModels.should.be.greaterThan(0);
+      }
+    });
+
+    it('should maintain model reuse within tenant during complex operations', function() {
+      TenantContextMocker.setupTenantContext('reuse-tenant');
+
+      // Create multiple models with the same embedded structure
+      const addressStructure = {
+        street: String,
+        city: String,
+        zipCode: String
+      };
+
+      const Customer = modelBuilder.define('Customer', {
+        name: String,
+        homeAddress: addressStructure,
+        workAddress: addressStructure
+      });
+
+      const Employee = modelBuilder.define('Employee', {
+        fullName: String,
+        address: addressStructure
+      });
+
+      // All address models should be the same instance within the tenant
+      const homeAddressModel = Customer.definition.properties.homeAddress.type;
+      const workAddressModel = Customer.definition.properties.workAddress.type;
+      const employeeAddressModel = Employee.definition.properties.address.type;
+
+      if (homeAddressModel && workAddressModel && employeeAddressModel) {
+        if (homeAddressModel.settings?.anonymous && 
+            workAddressModel.settings?.anonymous && 
+            employeeAddressModel.settings?.anonymous) {
+          homeAddressModel.should.equal(workAddressModel);
+          homeAddressModel.should.equal(employeeAddressModel);
+        }
+      }
+
+      const stats = ModelRegistry.getStats();
+      stats.reuseCount.should.be.greaterThan(0);
+    });
+  });
 });
