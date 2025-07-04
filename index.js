@@ -13,6 +13,8 @@ exports.DataSource = exports.Schema = require('./lib/datasource.js').DataSource;
 exports.ModelBaseClass = require('./lib/model.js');
 exports.GeoPoint = require('./lib/geo.js').GeoPoint;
 exports.ValidationError = require('./lib/validations.js').ValidationError;
+exports.ModelRegistry = require('./lib/model-registry').ModelRegistry;
+exports.ModelRegistryProxy = require('./lib/model-registry-proxy');
 
 Object.defineProperty(exports, 'version', {
   get: function() { return require('./package.json').version; },
