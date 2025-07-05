@@ -40,8 +40,8 @@ describe('Centralized Model Registry', function() {
         email: { type: 'string' }
       });
 
-      // Get models for this DataSource
-      const models = ModelRegistry.getModelsForOwner(dataSource, 'dataSource');
+      // Get models for this DataSource (using new proposal API)
+      const models = ModelRegistry.getModelsForOwner(dataSource);
       models.should.be.an.Array();
       models.should.have.length(1);
       models[0].should.equal(User);
@@ -64,22 +64,22 @@ describe('Centralized Model Registry', function() {
       // Create a model
       const User = dataSource.define('User', { name: 'string' });
 
-      // Check if model exists for this DataSource
-      ModelRegistry.hasModelForOwner('User', dataSource, 'dataSource').should.be.true();
-      ModelRegistry.hasModelForOwner('NonExistent', dataSource, 'dataSource').should.be.false();
+      // Check if model exists for this DataSource (using new proposal API)
+      ModelRegistry.hasModelForOwner(dataSource, 'User').should.be.true();
+      ModelRegistry.hasModelForOwner(dataSource, 'NonExistent').should.be.false();
     });
 
     it('should provide getModelForOwner method', function() {
       // Create a model
       const User = dataSource.define('User', { name: 'string' });
 
-      // Get specific model for this DataSource
-      const foundModel = ModelRegistry.getModelForOwner('User', dataSource, 'dataSource');
+      // Get specific model for this DataSource (using new proposal API)
+      const foundModel = ModelRegistry.getModelForOwner(dataSource, 'User');
       should.exist(foundModel);
       foundModel.should.equal(User);
 
       // Try to get non-existent model
-      const notFound = ModelRegistry.getModelForOwner('NonExistent', dataSource, 'dataSource');
+      const notFound = ModelRegistry.getModelForOwner(dataSource, 'NonExistent');
       should.not.exist(notFound);
     });
 
@@ -90,9 +90,9 @@ describe('Centralized Model Registry', function() {
       const User1 = dataSource.define('User1', { name: 'string' });
       const User2 = dataSource2.define('User2', { title: 'string' });
 
-      // Verify isolation
-      const models1 = ModelRegistry.getModelsForOwner(dataSource, 'dataSource');
-      const models2 = ModelRegistry.getModelsForOwner(dataSource2, 'dataSource');
+      // Verify isolation (using new proposal API)
+      const models1 = ModelRegistry.getModelsForOwner(dataSource);
+      const models2 = ModelRegistry.getModelsForOwner(dataSource2);
 
       models1.should.have.length(1);
       models2.should.have.length(1);
@@ -307,6 +307,114 @@ describe('Centralized Model Registry', function() {
       should.not.exist(dataSource.models.NonExistent);
       should.not.exist(dataSource.models.undefined);
       should.not.exist(dataSource.models.null);
+    });
+  });
+
+  describe('Performance Benchmarks', function() {
+    it('should demonstrate O(1) model lookup performance', function() {
+      // Create many models to test scalability
+      const modelCount = 100;
+      const models = [];
+
+      for (let i = 0; i < modelCount; i++) {
+        const model = dataSource.define(`TestModel${i}`, {
+          id: { type: 'string', id: true },
+          name: { type: 'string' },
+          value: { type: 'number' }
+        });
+        models.push(model);
+      }
+
+      // Measure lookup performance
+      const iterations = 1000;
+      const start = process.hrtime.bigint();
+
+      for (let i = 0; i < iterations; i++) {
+        // Access random models
+        const randomIndex = Math.floor(Math.random() * modelCount);
+        const modelName = `TestModel${randomIndex}`;
+        const foundModel = dataSource.models[modelName];
+        should.exist(foundModel);
+        foundModel.should.equal(models[randomIndex]);
+      }
+
+      const end = process.hrtime.bigint();
+      const duration = Number(end - start) / 1000000; // Convert to milliseconds
+
+      // Performance should be consistent regardless of model count (O(1))
+      // Allow reasonable time for 1000 lookups across 100 models
+      duration.should.be.below(100); // Should complete in under 100ms
+
+      console.log(`    ✓ ${iterations} model lookups across ${modelCount} models completed in ${duration.toFixed(2)}ms`);
+    });
+
+    it('should demonstrate efficient owner-aware queries', function() {
+      const dataSource2 = new DataSource('memory');
+
+      // Create models in both DataSources
+      const modelsPerDS = 50;
+      for (let i = 0; i < modelsPerDS; i++) {
+        dataSource.define(`DS1_Model${i}`, { name: 'string' });
+        dataSource2.define(`DS2_Model${i}`, { title: 'string' });
+      }
+
+      // Measure owner-aware query performance
+      const iterations = 100;
+      const start = process.hrtime.bigint();
+
+      for (let i = 0; i < iterations; i++) {
+        const models1 = ModelRegistry.getModelsForOwner(dataSource);
+        const models2 = ModelRegistry.getModelsForOwner(dataSource2);
+
+        models1.should.have.length(modelsPerDS);
+        models2.should.have.length(modelsPerDS);
+      }
+
+      const end = process.hrtime.bigint();
+      const duration = Number(end - start) / 1000000;
+
+      // Owner-aware queries should be very fast
+      duration.should.be.below(20); // Should complete in under 20ms
+
+      console.log(`    ✓ ${iterations} owner-aware queries completed in ${duration.toFixed(2)}ms`);
+    });
+
+    it('should handle large numbers of models efficiently', function() {
+      // Test with larger scale to validate scalability
+      const modelCount = 500;
+
+      for (let i = 0; i < modelCount; i++) {
+        dataSource.define(`ScaleTest${i}`, {
+          id: { type: 'string', id: true },
+          data: { type: 'string' }
+        });
+      }
+
+      // Test various operations at scale
+      const start = process.hrtime.bigint();
+
+      // Test Object.keys() performance
+      const keys = Object.keys(dataSource.models);
+      keys.should.have.length(modelCount);
+
+      // Test enumeration performance
+      let count = 0;
+      for (const modelName in dataSource.models) {
+        count++;
+      }
+      count.should.equal(modelCount);
+
+      // Test owner-aware query performance
+      const allModels = ModelRegistry.getModelsForOwner(dataSource);
+      allModels.should.have.length(modelCount);
+
+      const end = process.hrtime.bigint();
+      const duration = Number(end - start) / 1000000;
+
+      // All operations should complete quickly even with many models
+      duration.should.be.below(100); // Should complete in under 100ms
+
+      console.log(`    ✓ Operations on ${modelCount} models completed in ${duration.toFixed(2)}ms`);
     });
   });
 });
