@@ -417,4 +417,168 @@ describe('Centralized Model Registry', function() {
       console.log(`    ✓ Operations on ${modelCount} models completed in ${duration.toFixed(2)}ms`);
     });
   });
+
+  describe('App Integration and Bug Fixes', function() {
+    let mockApp;
+
+    beforeEach(function() {
+      // Create a mock LoopBack App object (function with properties)
+      mockApp = function() {};
+      mockApp.models = {};
+      mockApp.dataSources = {};
+      mockApp.middleware = [];
+      mockApp.model = function(model) {
+        // Simulate app.model() behavior
+        if (model && model.modelName) {
+          ModelRegistry.registerModelForApp(this, model);
+          return model;
+        }
+      };
+      mockApp.use = function() {};
+      mockApp.listen = function() {};
+    });
+
+    describe('Bug #1: App Object Type Detection', function() {
+      it('should detect LoopBack App objects (functions) correctly', function() {
+        const ownerType = ModelRegistry._detectOwnerType(mockApp);
+        ownerType.should.equal('app');
+      });
+
+      it('should detect DataSource objects correctly', function() {
+        const ownerType = ModelRegistry._detectOwnerType(dataSource);
+        ownerType.should.equal('dataSource');
+      });
+
+      it('should return null for invalid objects', function() {
+        should.not.exist(ModelRegistry._detectOwnerType(null));
+        should.not.exist(ModelRegistry._detectOwnerType(undefined));
+        should.not.exist(ModelRegistry._detectOwnerType('string'));
+        should.not.exist(ModelRegistry._detectOwnerType(123));
+      });
+
+      it('should handle App objects with different constructor names', function() {
+        // Create apps with different characteristics
+        const app1 = function() {};
+        app1.models = {};
+        app1.dataSources = {};
+        ModelRegistry._detectOwnerType(app1).should.equal('app');
+
+        const app2 = function() {};
+        app2.models = {};
+        app2.middleware = [];
+        ModelRegistry._detectOwnerType(app2).should.equal('app');
+
+        const app3 = function() {};
+        app3.model = function() {};
+        app3.use = function() {};
+        app3.listen = function() {};
+        ModelRegistry._detectOwnerType(app3).should.equal('app');
+      });
+    });
+
+    describe('Bug #2: App Model Registration', function() {
+      it('should register models for App instances using registerModelForApp', function() {
+        const User = dataSource.define('User', { name: 'string' });
+
+        // Register model for app
+        ModelRegistry.registerModelForApp(mockApp, User);
+
+        // Verify app relationship is set
+        User.app.should.equal(mockApp);
+
+        // Verify model can be found by name
+        const foundModel = ModelRegistry.findModelByName('User');
+        should.exist(foundModel);
+        foundModel.should.equal(User);
+        foundModel.app.should.equal(mockApp);
+      });
+
+      it('should support app.model() integration pattern', function() {
+        const Product = dataSource.define('Product', { title: 'string' });
+
+        // Simulate app.model() call
+        mockApp.model(Product);
+
+        // Verify model is registered and app relationship is set
+        Product.app.should.equal(mockApp);
+        const foundModel = ModelRegistry.findModelByName('Product');
+        should.exist(foundModel);
+        foundModel.should.equal(Product);
+      });
+
+      it('should isolate models between different App instances', function() {
+        const app1 = function() {};
+        app1.models = {};
+        app1.model = mockApp.model;
+
+        const app2 = function() {};
+        app2.models = {};
+        app2.model = mockApp.model;
+
+        const User1 = dataSource.define('User1', { name: 'string' });
+        const User2 = dataSource.define('User2', { email: 'string' });
+
+        ModelRegistry.registerModelForApp(app1, User1);
+        ModelRegistry.registerModelForApp(app2, User2);
+
+        // Verify isolation
+        User1.app.should.equal(app1);
+        User2.app.should.equal(app2);
+        User1.app.should.not.equal(User2.app);
+      });
+    });
+
+    describe('Bug #3: API Consistency and Parameter Order', function() {
+      beforeEach(function() {
+        const User = dataSource.define('User', { name: 'string' });
+        ModelRegistry.registerModelForApp(mockApp, User);
+      });
+
+      it('should have consistent parameter order in simplified API', function() {
+        // All simplified API methods should have owner as first parameter
+        const models = ModelRegistry.getModelsForOwner(mockApp);
+        models.should.be.an.Array();
+        models.should.have.length(1);
+        models[0].modelName.should.equal('User');
+
+        const modelNames = ModelRegistry.getModelNamesForOwner(mockApp);
+        modelNames.should.eql(['User']);
+
+        const hasModel = ModelRegistry.hasModelForOwner(mockApp, 'User');
+        hasModel.should.be.true();
+
+        const model = ModelRegistry.getModelForOwner(mockApp, 'User');
+        model.modelName.should.equal('User');
+      });
+
+      it('should have consistent parameter order in explicit API', function() {
+        // All explicit API methods should have owner as first parameter
+        const models = ModelRegistry.getModelsForOwnerWithType(mockApp, 'app');
+        models.should.be.an.Array();
+        models.should.have.length(1);
+
+        const hasModel = ModelRegistry.hasModelForOwnerWithType(mockApp, 'User', 'app');
+        hasModel.should.be.true();
+
+        const model = ModelRegistry.getModelForOwnerWithType(mockApp, 'User', 'app');
+        model.modelName.should.equal('User');
+      });
+
+      it('should work with both DataSource and App owners', function() {
+        const dsUser = dataSource.define('DSUser', { name: 'string' });
+
+        // Test DataSource with simplified API
+        const dsModels = ModelRegistry.getModelsForOwner(dataSource);
+        dsModels.some(m => m.modelName === 'DSUser').should.be.true();
+
+        // Test App with simplified API
+        const appModels = ModelRegistry.getModelsForOwner(mockApp);
+        appModels.some(m => m.modelName === 'User').should.be.true();
+
+        // Verify isolation
+        dsModels.some(m => m.modelName === 'User').should.be.false();
+        appModels.some(m => m.modelName === 'DSUser').should.be.false();
+      });
+    });
+  });
 });
