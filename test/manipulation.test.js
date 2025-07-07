@@ -391,6 +391,16 @@ describe('manipulation', function() {
   });
 
   describe('save', function() {
+    before(function(done) {
+      Person.destroyAll(function(err) {
+        if (err) return done(err);
+        Person.create({name: 'Test Person', age: 25}, function(err, p) {
+          if (err) return done(err);
+          done();
+        });
+      });
+    });
+
     it('should save new object', function(done) {
       const p = new Person;
       should.not.exist(p.id);
