@@ -26,6 +26,16 @@ This enhancement transforms LoopBack's model management architecture while maint
 
 ## 2025-07-07
 
+
+
+### 🔧 **Core API Modernization**
+**Contributors:** Young (youngtt)
+**Status:** ✅ **COMPLETE** - All tests passing (2351/2351)
+
+---
+
+## 2025-07-07
+
 ### 🔧 **Core API Modernization**
 **Contributors:** Young (youngtt)
 **Status:** ✅ **COMPLETE** - All tests passing (2351/2351)
@@ -82,7 +92,8 @@ This enhancement transforms LoopBack's model management architecture while maint
   - `registerModelForApp(app, model, properties)` - App model registration with ownership transfer
 
 - **✅ Enhanced ModelRegistryProxy with Performance Caching:**
-  - Owner-specific cache keys for effective isolation (DataSource + App)
+  - WeakMap-based instance caching for DataSource isolation with automatic cleanup
+  - String-based cache keys for App instances with proper isolation
   - Comprehensive Proxy handlers for all object operations
   - Support for Object.keys(), for...in loops, hasOwnProperty()
   - Intelligent cache invalidation on model registration

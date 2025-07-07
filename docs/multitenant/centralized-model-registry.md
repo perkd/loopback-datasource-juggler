@@ -257,9 +257,9 @@ graph TD
     end
 
     subgraph "Performance Cache Layer"
-        PC1[Cache: ds_memory_123 -> models]
-        PC2[Cache: ds_memory_456 -> models]
-        PC3[Cache: ds_mysql_789 -> models]
+        PC1[WeakMap: DataSource1 -> models]
+        PC2[WeakMap: DataSource2 -> models]
+        PC3[WeakMap: DataSource3 -> models]
         PC4[Cache: app_LoopBackApp_101 -> models]
         PC5[Cache: app_LoopBackApp_102 -> models]
         PC6[Cache: global -> models]
@@ -705,8 +705,9 @@ for (const name in proxy) { /* ... */ }   // Iterate models
 
 **Isolation Features:**
 - **Owner-based Separation**: Each DataSource gets isolated model view
-- **Independent Caching**: Unique cache keys per DataSource instance
-- **Concurrent Access**: Multiple DataSources operate independently
+- **Instance-based Caching**: WeakMap-based caching ensures proper isolation between DataSource instances
+- **Automatic Cache Cleanup**: Cache entries are automatically garbage collected when DataSources are destroyed
+- **Concurrent Access**: Multiple DataSources operate independently with perfect isolation
 
 ### 🏗️ **ARCHITECTURE SIMPLIFICATION ACHIEVED**
 

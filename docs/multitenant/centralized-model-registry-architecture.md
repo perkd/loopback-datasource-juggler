@@ -329,9 +329,27 @@ console.timeEnd('for...in'); // ~8ms (acceptable overhead)
 
 ### Optimization Strategies
 
-#### Proxy Instance Caching
+#### Instance-based Caching with WeakMap
 
 ```javascript
+// Internal implementation uses WeakMap for DataSource instance isolation
+const instanceCache = new WeakMap(); // DataSource instance -> cached models
+
+// Automatic cache isolation per DataSource instance
+function getModelsForOwner(owner) {
+  if (owner.constructor.name === 'DataSource') {
+    // Check instance cache first (proper isolation)
+    if (instanceCache.has(owner)) {
+      return instanceCache.get(owner);
+    }
+
+    const models = this.getModelsForOwnerWithType(owner, 'dataSource');
+    instanceCache.set(owner, models); // Cache per instance
+    return models;
+  }
+  // ... other owner types
+}
+
 // Efficient pattern - cache proxy reference
 const models = dataSource.models; // Get proxy once
 const User = models.User;         // Use cached proxy
