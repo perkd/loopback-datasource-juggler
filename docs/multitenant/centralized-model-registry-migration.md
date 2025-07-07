@@ -109,7 +109,7 @@ function testMigration() {
     console.log('✅ Object operations working');
     
     // Test 3: New API methods
-    const models = ModelRegistry.getModelsForOwner(dataSource, 'dataSource');
+    const models = ModelRegistry.getModelsForOwner(dataSource);
     console.assert(models.length === 1, 'Owner-aware query failed');
     console.log('✅ New API methods working');
     
@@ -228,7 +228,7 @@ const { ModelRegistry } = require('loopback-datasource-juggler');
 
 function findUserModel(dataSources) {
   for (const ds of dataSources) {
-    const model = ModelRegistry.getModelForOwner('User', ds, 'dataSource');
+    const model = ModelRegistry.getModelForOwner(ds, 'User');
     if (model) return model;
   }
   return null;
@@ -255,7 +255,7 @@ function processAllModels(dataSource) {
 const { ModelRegistry } = require('loopback-datasource-juggler');
 
 function processAllModels(dataSource) {
-  const models = ModelRegistry.getModelsForOwner(dataSource, 'dataSource');
+  const models = ModelRegistry.getModelsForOwner(dataSource);
   models.forEach(model => {
     // Process model...
   });
@@ -338,14 +338,14 @@ class CustomModelManager {
   
   removeModel(name) {
     // Use ModelRegistry for removal
-    const model = ModelRegistry.getModelForOwner(name, this.dataSource, 'dataSource');
+    const model = ModelRegistry.getModelForOwner(this.dataSource, name);
     if (model) {
       ModelRegistry.unregisterModel(model);
     }
   }
-  
+
   getModels() {
-    return ModelRegistry.getModelsForOwner(this.dataSource, 'dataSource');
+    return ModelRegistry.getModelsForOwner(this.dataSource);
   }
 }
 ```
@@ -434,8 +434,8 @@ describe('Model Registry Migration', () => {
   
   it('should support new owner-aware queries', () => {
     const User = dataSource.define('User', { name: 'string' });
-    
-    const models = ModelRegistry.getModelsForOwner(dataSource, 'dataSource');
+
+    const models = ModelRegistry.getModelsForOwner(dataSource);
     expect(models).toHaveLength(1);
     expect(models[0]).toBe(User);
   });
