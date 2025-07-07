@@ -424,6 +424,13 @@ The ModelRegistryProxy uses JavaScript's Proxy API to intercept all property acc
 ```javascript
 class ModelRegistryProxy {
   constructor(owner, ownerType) {
+    if (!owner) {
+      throw new Error('ModelRegistryProxy requires an owner object');
+    }
+    if (!ownerType || (ownerType !== 'dataSource' && ownerType !== 'app')) {
+      throw new Error('ModelRegistryProxy requires ownerType to be "dataSource" or "app"');
+    }
+
     return new Proxy(this, {
       get(target, prop) {
         // Handle special properties (length, toString, etc.)
@@ -431,19 +438,19 @@ class ModelRegistryProxy {
         // Handle Object methods (keys, values, entries)
         // Default: return model by name
       },
-      
+
       set(target, prop, value) {
         // Register model with ownership relationship
       },
-      
+
       has(target, prop) {
         // Check if model exists for this owner
       },
-      
+
       ownKeys(target) {
         // Return model names for enumeration
       },
-      
+
       getOwnPropertyDescriptor(target, prop) {
         // Provide property descriptors for models
       }
@@ -477,8 +484,8 @@ Object.defineProperty(DataSource.prototype, 'models', {
 
 ### Package Requirements
 
-- **loopback-datasource-juggler**: Version 5.2.1 or higher
-- **Node.js**: Version 14.x or higher
+- **loopback-datasource-juggler**: Version 5.2.4 or higher
+- **Node.js**: Version 20.x or higher (as per package.json engines)
 - **Existing LoopBack applications**: Full backward compatibility
 
 ### Integration Steps
@@ -983,7 +990,7 @@ const User = dataSource.define('User', userProperties, userSettings);
 **Solution:**
 ```bash
 npm update loopback-datasource-juggler
-# Ensure version 5.2.1 or higher
+# Ensure version 5.2.4 or higher
 ```
 
 #### Issue: Models not appearing in dataSource.models
@@ -1047,7 +1054,7 @@ This will show:
 
 If you encounter issues not covered in this guide:
 
-1. **Check Version**: Ensure you're using loopback-datasource-juggler 5.2.1+
+1. **Check Version**: Ensure you're using loopback-datasource-juggler 5.2.4+
 2. **Run Tests**: Execute the validation checklist above
 3. **Enable Debug**: Use debug logging to identify the issue
 4. **Create Issue**: Report bugs with debug output and reproduction steps
