@@ -7,7 +7,7 @@
 
 const should = require('./init.js');
 const DataSource = require('../lib/datasource').DataSource;
-const { ModelRegistry } = require('../lib/model-registry');
+const {ModelRegistry} = require('../lib/model-registry');
 
 describe('Memory Leak Fixes - v5.2.5', function() {
   beforeEach(function() {
@@ -18,50 +18,50 @@ describe('Memory Leak Fixes - v5.2.5', function() {
   describe('Stable DataSource ID Generation', function() {
     it('should reuse tenant registries for identical configurations', function() {
       const initialStats = ModelRegistry.getStats();
-      
+
       // Create multiple DataSources with identical configurations
       const dataSources = [];
       for (let i = 0; i < 10; i++) {
-        const ds = new DataSource('memory', { 
+        const ds = new DataSource('memory', {
           name: 'testdb',
           host: 'localhost',
-          port: 3306
+          port: 3306,
         });
-        const User = ds.define('User', { name: 'string' });
+        const User = ds.define('User', {name: 'string'});
         dataSources.push(ds);
-        
+
         // Access models to trigger proxy creation
         Object.keys(ds.models).should.containEql('User');
       }
-      
+
       const afterCreationStats = ModelRegistry.getStats();
-      
+
       // Should only have 1 tenant registry (reused for identical configs)
       afterCreationStats.tenantRegistries.should.equal(1);
-      
+
       // Cleanup
       dataSources.forEach(ds => ds.disconnect());
     });
 
     it('should create separate registries for different configurations', function() {
       const dataSources = [];
-      
+
       // Create DataSources with different configurations
       for (let i = 0; i < 3; i++) {
-        const ds = new DataSource('memory', { 
+        const ds = new DataSource('memory', {
           name: `testdb${i}`,
           host: 'localhost',
-          port: 3306 + i
+          port: 3306 + i,
         });
-        const User = ds.define('User', { name: 'string' });
+        const User = ds.define('User', {name: 'string'});
         dataSources.push(ds);
       }
-      
+
       const stats = ModelRegistry.getStats();
-      
+
       // Should have 3 tenant registries (different configs)
       stats.tenantRegistries.should.equal(3);
-      
+
       // Cleanup
       dataSources.forEach(ds => ds.disconnect());
     });
@@ -69,8 +69,8 @@ describe('Memory Leak Fixes - v5.2.5', function() {
 
   describe('DataSource Disconnect Cleanup', function() {
     it('should clean up ModelRegistryProxy on disconnect', function(done) {
-      const ds = new DataSource('memory', { name: 'testdb' });
-      const User = ds.define('User', { name: 'string' });
+      const ds = new DataSource('memory', {name: 'testdb'});
+      const User = ds.define('User', {name: 'string'});
 
       // Access models to create proxy
       const models = ds.models;
@@ -91,11 +91,11 @@ describe('Memory Leak Fixes - v5.2.5', function() {
     });
 
     it('should clean up tenant registry with reference counting', function(done) {
-      const ds1 = new DataSource('memory', { name: 'shared' });
-      const ds2 = new DataSource('memory', { name: 'shared' });
+      const ds1 = new DataSource('memory', {name: 'shared'});
+      const ds2 = new DataSource('memory', {name: 'shared'});
 
-      const User1 = ds1.define('User', { name: 'string' });
-      const User2 = ds2.define('User', { name: 'string' });
+      const User1 = ds1.define('User', {name: 'string'});
+      const User2 = ds2.define('User', {name: 'string'});
 
       // Both should use same tenant registry
       const stats1 = ModelRegistry.getStats();
@@ -130,9 +130,9 @@ describe('Memory Leak Fixes - v5.2.5', function() {
       for (let i = 0; i < 50; i++) {
         const ds = new DataSource('memory', {
           name: 'rapidtest',
-          host: 'localhost'
+          host: 'localhost',
         });
-        const User = ds.define('User', { name: 'string' });
+        const User = ds.define('User', {name: 'string'});
 
         // Access models to trigger proxy creation
         Object.keys(ds.models).should.containEql('User');
@@ -157,11 +157,11 @@ describe('Memory Leak Fixes - v5.2.5', function() {
       // Create mix of shared and unique configurations
       for (let i = 0; i < 20; i++) {
         const config = i % 5 === 0 ?
-          { name: 'shared', host: 'localhost' } :  // Every 5th is shared
-          { name: `unique${i}`, host: 'localhost' }; // Others are unique
+          {name: 'shared', host: 'localhost'} : // Every 5th is shared
+          {name: `unique${i}`, host: 'localhost'}; // Others are unique
 
         const ds = new DataSource('memory', config);
-        const User = ds.define('User', { name: 'string' });
+        const User = ds.define('User', {name: 'string'});
         dataSources.push(ds);
       }
 
@@ -186,18 +186,18 @@ describe('Memory Leak Fixes - v5.2.5', function() {
 
   describe('Reference Counting', function() {
     it('should track DataSource references correctly', function(done) {
-      const config = { name: 'reftest', host: 'localhost' };
+      const config = {name: 'reftest', host: 'localhost'};
 
       // Create first DataSource
       const ds1 = new DataSource('memory', config);
-      const User1 = ds1.define('User', { name: 'string' });
+      const User1 = ds1.define('User', {name: 'string'});
 
       let stats = ModelRegistry.getStats();
       stats.tenantRegistries.should.equal(1);
 
       // Create second DataSource with same config
       const ds2 = new DataSource('memory', config);
-      const User2 = ds2.define('User', { name: 'string' });
+      const User2 = ds2.define('User', {name: 'string'});
 
       // Should still be 1 registry (shared)
       stats = ModelRegistry.getStats();
@@ -224,18 +224,18 @@ describe('Memory Leak Fixes - v5.2.5', function() {
 
   describe('Error Handling', function() {
     it('should handle cleanup errors gracefully', function() {
-      const ds = new DataSource('memory', { name: 'errortest' });
-      const User = ds.define('User', { name: 'string' });
-      
+      const ds = new DataSource('memory', {name: 'errortest'});
+      const User = ds.define('User', {name: 'string'});
+
       // Mock ModelRegistry to throw error
       const originalCleanup = ModelRegistry.cleanupTenant;
       ModelRegistry.cleanupTenant = function() {
         throw new Error('Cleanup error');
       };
-      
+
       // Disconnect should not throw
       (() => ds.disconnect()).should.not.throw();
-      
+
       // Restore original method
       ModelRegistry.cleanupTenant = originalCleanup;
     });
@@ -249,9 +249,9 @@ describe('Memory Leak Fixes - v5.2.5', function() {
       // Create many DataSources
       for (let i = 0; i < 100; i++) {
         const ds = new DataSource('memory', {
-          name: i % 10 === 0 ? 'shared' : `unique${i}`
+          name: i % 10 === 0 ? 'shared' : `unique${i}`,
         });
-        const User = ds.define('User', { name: 'string' });
+        const User = ds.define('User', {name: 'string'});
         dataSources.push(ds);
       }
 

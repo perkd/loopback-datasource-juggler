@@ -7,14 +7,14 @@
 
 const expect = require('chai').expect;
 const loopback = require('../lib/loopback');
-const { DataSource, ModelRegistry } = require('loopback-datasource-juggler');
+const {DataSource, ModelRegistry} = require('loopback-datasource-juggler');
 
 describe('Centralized Model Registry Integration', function() {
   let app, dataSource;
 
   beforeEach(function() {
-    app = loopback({ localRegistry: true, loadBuiltinModels: true });
-    dataSource = app.dataSource('db', { connector: 'memory' });
+    app = loopback({localRegistry: true, loadBuiltinModels: true});
+    dataSource = app.dataSource('db', {connector: 'memory'});
   });
 
   describe('DataSource.models proxy integration', function() {
@@ -24,8 +24,8 @@ describe('Centralized Model Registry Integration', function() {
 
       // Create DataSource-owned model
       const User = dataSource.define('User', {
-        name: { type: 'string' },
-        email: { type: 'string' }
+        name: {type: 'string'},
+        email: {type: 'string'},
       });
 
       // After creation - should be accessible via proxy
@@ -35,8 +35,8 @@ describe('Centralized Model Registry Integration', function() {
 
     it('should support all Object operations on DataSource.models proxy', function() {
       // Create DataSource-owned models
-      const User = dataSource.define('User', { name: 'string' });
-      const Product = dataSource.define('Product', { title: 'string' });
+      const User = dataSource.define('User', {name: 'string'});
+      const Product = dataSource.define('Product', {title: 'string'});
 
       // Object.keys()
       const keys = Object.keys(dataSource.models);
@@ -69,11 +69,11 @@ describe('Centralized Model Registry Integration', function() {
     });
 
     it('should maintain isolation between different DataSources', function() {
-      const dataSource2 = app.dataSource('db2', { connector: 'memory' });
+      const dataSource2 = app.dataSource('db2', {connector: 'memory'});
 
       // Create DataSource-owned models (not App-owned)
-      const User = dataSource.define('User', { name: 'string' });
-      const Product = dataSource2.define('Product', { title: 'string' });
+      const User = dataSource.define('User', {name: 'string'});
+      const Product = dataSource2.define('Product', {title: 'string'});
 
       // DataSource 1 should only have User
       expect(Object.keys(dataSource.models)).to.deep.equal(['User']);
@@ -97,8 +97,8 @@ describe('Centralized Model Registry Integration', function() {
 
     it('should return models owned by specific DataSource', function() {
       // Create DataSource-owned models using dataSource.define() (not app.model())
-      const User = dataSource.define('User', { name: 'string' });
-      const Product = dataSource.define('Product', { title: 'string' });
+      const User = dataSource.define('User', {name: 'string'});
+      const Product = dataSource.define('Product', {title: 'string'});
 
       const models = ModelRegistry.getModelsForOwner(dataSource, 'dataSource');
       const modelNames = models.map(m => m.modelName);
@@ -110,7 +110,7 @@ describe('Centralized Model Registry Integration', function() {
 
     it('should return model names owned by specific DataSource', function() {
       // Create DataSource-owned models using dataSource.define() (not app.model())
-      const User = dataSource.define('User', { name: 'string' });
+      const User = dataSource.define('User', {name: 'string'});
 
       const modelNames = ModelRegistry.getModelNamesForOwner(dataSource, 'dataSource');
 
@@ -120,7 +120,7 @@ describe('Centralized Model Registry Integration', function() {
 
     it('should check if model exists for specific owner', function() {
       // Create DataSource-owned models using dataSource.define() (not app.model())
-      const User = dataSource.define('User', { name: 'string' });
+      const User = dataSource.define('User', {name: 'string'});
 
       const hasUser = ModelRegistry.hasModelForOwner(dataSource, 'User', 'dataSource');
       const hasProduct = ModelRegistry.hasModelForOwner(dataSource, 'Product', 'dataSource');
@@ -131,7 +131,7 @@ describe('Centralized Model Registry Integration', function() {
 
     it('should get specific model for owner', function() {
       // Create DataSource-owned models using dataSource.define() (not app.model())
-      const User = dataSource.define('User', { name: 'string' });
+      const User = dataSource.define('User', {name: 'string'});
 
       const foundUser = ModelRegistry.getModelForOwner(dataSource, 'User', 'dataSource');
       const foundProduct = ModelRegistry.getModelForOwner(dataSource, 'Product', 'dataSource');
@@ -141,11 +141,11 @@ describe('Centralized Model Registry Integration', function() {
     });
 
     it('should return models owned by app', function() {
-      const User = app.registry.createModel('User', { name: 'string' });
-      const Product = app.registry.createModel('Product', { title: 'string' });
+      const User = app.registry.createModel('User', {name: 'string'});
+      const Product = app.registry.createModel('Product', {title: 'string'});
 
-      app.model(User, { dataSource: 'db' });
-      app.model(Product, { dataSource: 'db' });
+      app.model(User, {dataSource: 'db'});
+      app.model(Product, {dataSource: 'db'});
 
       const appModels = ModelRegistry.getModelsForOwner(app, 'app');
       const modelNames = appModels.map(m => m.modelName);
@@ -155,7 +155,7 @@ describe('Centralized Model Registry Integration', function() {
 
     it('should verify API parameter order consistency', function() {
       // Create DataSource-owned model
-      const User = dataSource.define('User', { name: 'string' });
+      const User = dataSource.define('User', {name: 'string'});
 
       // Test simplified API (owner, modelName)
       const foundUser1 = ModelRegistry.getModelForOwner(dataSource, 'User');
@@ -184,15 +184,15 @@ describe('Centralized Model Registry Integration', function() {
     it('should use owner-aware queries in enableAuth when available', function() {
       // Create a custom User subclass
       const CustomUser = app.registry.createModel('CustomUser', {
-        customField: { type: 'string' }
+        customField: {type: 'string'},
       }, {
-        base: 'User'
+        base: 'User',
       });
 
-      app.model(CustomUser, { dataSource: 'db' });
+      app.model(CustomUser, {dataSource: 'db'});
 
       // Enable auth - should detect the attached subclass
-      app.enableAuth({ dataSource: dataSource });
+      app.enableAuth({dataSource: dataSource});
 
       // Built-in User should not be attached since CustomUser is already attached
       const builtinUser = app.registry.findModel('User');
@@ -202,12 +202,12 @@ describe('Centralized Model Registry Integration', function() {
 
     it('should use owner-aware queries in Registry.getModelByType when available', function() {
       const CustomUser = app.registry.createModel('CustomUser', {
-        customField: { type: 'string' }
+        customField: {type: 'string'},
       }, {
-        base: 'User'
+        base: 'User',
       });
 
-      app.model(CustomUser, { dataSource: 'db' });
+      app.model(CustomUser, {dataSource: 'db'});
 
       // getModelByType should work with enhanced logic
       const foundModel = app.registry.getModelByType('User');
@@ -218,8 +218,8 @@ describe('Centralized Model Registry Integration', function() {
 
   describe('Backward compatibility', function() {
     it('should maintain compatibility with existing model access patterns', function() {
-      const User = app.registry.createModel('User', { name: 'string' });
-      app.model(User, { dataSource: 'db' });
+      const User = app.registry.createModel('User', {name: 'string'});
+      app.model(User, {dataSource: 'db'});
 
       // Traditional app.models access
       expect(app.models.User).to.equal(User);
@@ -243,11 +243,11 @@ describe('Centralized Model Registry Integration', function() {
       delete ModelRegistry.getModelsForOwner;
 
       try {
-        const User = app.registry.createModel('User', { name: 'string' });
-        app.model(User, { dataSource: 'db' });
+        const User = app.registry.createModel('User', {name: 'string'});
+        app.model(User, {dataSource: 'db'});
 
         // Should still work with fallback logic
-        app.enableAuth({ dataSource: dataSource });
+        app.enableAuth({dataSource: dataSource});
         expect(User.dataSource).to.equal(dataSource);
 
         const foundModel = app.registry.getModelByType('User');
@@ -267,7 +267,7 @@ describe('Centralized Model Registry Integration', function() {
       // Create many DataSource-owned models
       for (let i = 0; i < modelCount; i++) {
         const TestModel = dataSource.define(`TestModel${i}`, {
-          value: { type: 'string' }
+          value: {type: 'string'},
         });
         models.push(TestModel);
       }

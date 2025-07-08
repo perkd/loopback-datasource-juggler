@@ -20,7 +20,7 @@ describe('Centralized Model Registry', function() {
   beforeEach(function() {
     testTenant = `test-${Date.now()}`;
     dataSource = new DataSource('memory');
-    
+
     // Clear the registry before each test
     ModelRegistry.clear();
   });
@@ -36,8 +36,8 @@ describe('Centralized Model Registry', function() {
     it('should provide getModelsForOwner method', function() {
       // Create a model
       const User = dataSource.define('User', {
-        name: { type: 'string' },
-        email: { type: 'string' }
+        name: {type: 'string'},
+        email: {type: 'string'},
       });
 
       // Get models for this DataSource (using new proposal API)
@@ -49,8 +49,8 @@ describe('Centralized Model Registry', function() {
 
     it('should provide getModelNamesForOwner method', function() {
       // Create models
-      const User = dataSource.define('User', { name: 'string' });
-      const Product = dataSource.define('Product', { title: 'string' });
+      const User = dataSource.define('User', {name: 'string'});
+      const Product = dataSource.define('Product', {title: 'string'});
 
       // Get model names for this DataSource
       const modelNames = ModelRegistry.getModelNamesForOwner(dataSource, 'dataSource');
@@ -62,7 +62,7 @@ describe('Centralized Model Registry', function() {
 
     it('should provide hasModelForOwner method', function() {
       // Create a model
-      const User = dataSource.define('User', { name: 'string' });
+      const User = dataSource.define('User', {name: 'string'});
 
       // Check if model exists for this DataSource (using new proposal API)
       ModelRegistry.hasModelForOwner(dataSource, 'User').should.be.true();
@@ -71,7 +71,7 @@ describe('Centralized Model Registry', function() {
 
     it('should provide getModelForOwner method', function() {
       // Create a model
-      const User = dataSource.define('User', { name: 'string' });
+      const User = dataSource.define('User', {name: 'string'});
 
       // Get specific model for this DataSource (using new proposal API)
       const foundModel = ModelRegistry.getModelForOwner(dataSource, 'User');
@@ -87,8 +87,8 @@ describe('Centralized Model Registry', function() {
       const dataSource2 = new DataSource('memory');
 
       // Create models with different names in different DataSources to avoid conflicts
-      const User1 = dataSource.define('User1', { name: 'string' });
-      const User2 = dataSource2.define('User2', { title: 'string' });
+      const User1 = dataSource.define('User1', {name: 'string'});
+      const User2 = dataSource2.define('User2', {title: 'string'});
 
       // Verify isolation (using new proposal API)
       const models1 = ModelRegistry.getModelsForOwner(dataSource);
@@ -122,7 +122,7 @@ describe('Centralized Model Registry', function() {
     });
 
     it('should provide getModel method', function() {
-      const User = dataSource.define('User', { name: 'string' });
+      const User = dataSource.define('User', {name: 'string'});
       const proxy = new ModelRegistryProxy(dataSource, 'dataSource');
 
       // Access model through proxy property access (not direct method call)
@@ -135,7 +135,7 @@ describe('Centralized Model Registry', function() {
       const proxy = new ModelRegistryProxy(dataSource, 'dataSource');
       const mockModel = {
         modelName: 'TestModel',
-        definition: { properties: { name: 'string' } }
+        definition: {properties: {name: 'string'}},
       };
 
       // Set model through proxy property assignment
@@ -149,7 +149,7 @@ describe('Centralized Model Registry', function() {
     });
 
     it('should provide hasModel method', function() {
-      const User = dataSource.define('User', { name: 'string' });
+      const User = dataSource.define('User', {name: 'string'});
       const proxy = new ModelRegistryProxy(dataSource, 'dataSource');
 
       // Test using 'in' operator and hasOwnProperty
@@ -158,8 +158,8 @@ describe('Centralized Model Registry', function() {
     });
 
     it('should provide getModelNames method', function() {
-      const User = dataSource.define('User', { name: 'string' });
-      const Product = dataSource.define('Product', { title: 'string' });
+      const User = dataSource.define('User', {name: 'string'});
+      const Product = dataSource.define('Product', {title: 'string'});
       const proxy = new ModelRegistryProxy(dataSource, 'dataSource');
 
       // Test using Object.keys() which should work with the proxy
@@ -175,8 +175,8 @@ describe('Centralized Model Registry', function() {
     it('should provide unified model access through DataSource.models', function() {
       // Create model
       const User = dataSource.define('User', {
-        name: { type: 'string' },
-        email: { type: 'string' }
+        name: {type: 'string'},
+        email: {type: 'string'},
       });
 
       // Access through DataSource.models
@@ -187,8 +187,8 @@ describe('Centralized Model Registry', function() {
 
     it('should support Object.keys() on DataSource.models', function() {
       // Create models
-      const User = dataSource.define('User', { name: 'string' });
-      const Product = dataSource.define('Product', { title: 'string' });
+      const User = dataSource.define('User', {name: 'string'});
+      const Product = dataSource.define('Product', {title: 'string'});
 
       // Test Object.keys()
       const keys = Object.keys(dataSource.models);
@@ -200,8 +200,8 @@ describe('Centralized Model Registry', function() {
 
     it('should support for...in loops on DataSource.models', function() {
       // Create models
-      const User = dataSource.define('User', { name: 'string' });
-      const Product = dataSource.define('Product', { title: 'string' });
+      const User = dataSource.define('User', {name: 'string'});
+      const Product = dataSource.define('Product', {title: 'string'});
 
       // Test for...in loop
       const foundModels = [];
@@ -216,7 +216,7 @@ describe('Centralized Model Registry', function() {
 
     it('should support hasOwnProperty on DataSource.models', function() {
       // Create model
-      const User = dataSource.define('User', { name: 'string' });
+      const User = dataSource.define('User', {name: 'string'});
 
       // Test hasOwnProperty
       dataSource.models.hasOwnProperty('User').should.be.true();
@@ -226,7 +226,7 @@ describe('Centralized Model Registry', function() {
     it('should handle model assignment with deprecation warning', function() {
       const mockModel = {
         modelName: 'AssignedModel',
-        definition: { properties: { name: 'string' } }
+        definition: {properties: {name: 'string'}},
       };
 
       // Capture console.warn
@@ -238,7 +238,7 @@ describe('Centralized Model Registry', function() {
 
       try {
         // Assign model (should trigger deprecation warning)
-        dataSource.models = { AssignedModel: mockModel };
+        dataSource.models = {AssignedModel: mockModel};
 
         // Verify warning was shown
         warningMessage.should.containEql('deprecated');
@@ -255,8 +255,8 @@ describe('Centralized Model Registry', function() {
       const dataSource2 = new DataSource('memory');
 
       // Create models with different names in different DataSources
-      const User1 = dataSource.define('User1', { name: 'string' });
-      const User2 = dataSource2.define('User2', { title: 'string' });
+      const User1 = dataSource.define('User1', {name: 'string'});
+      const User2 = dataSource2.define('User2', {title: 'string'});
 
       // Verify isolation through proxy
       should.exist(dataSource.models.User1);
@@ -277,7 +277,7 @@ describe('Centralized Model Registry', function() {
   describe('Backward Compatibility', function() {
     it('should maintain all existing DataSource.models behavior', function() {
       // Create model
-      const User = dataSource.define('User', { name: 'string' });
+      const User = dataSource.define('User', {name: 'string'});
 
       // Test various access patterns that existing code might use
 
@@ -318,9 +318,9 @@ describe('Centralized Model Registry', function() {
 
       for (let i = 0; i < modelCount; i++) {
         const model = dataSource.define(`TestModel${i}`, {
-          id: { type: 'string', id: true },
-          name: { type: 'string' },
-          value: { type: 'number' }
+          id: {type: 'string', id: true},
+          name: {type: 'string'},
+          value: {type: 'number'},
         });
         models.push(model);
       }
@@ -354,8 +354,8 @@ describe('Centralized Model Registry', function() {
       // Create models in both DataSources
       const modelsPerDS = 50;
       for (let i = 0; i < modelsPerDS; i++) {
-        dataSource.define(`DS1_Model${i}`, { name: 'string' });
-        dataSource2.define(`DS2_Model${i}`, { title: 'string' });
+        dataSource.define(`DS1_Model${i}`, {name: 'string'});
+        dataSource2.define(`DS2_Model${i}`, {title: 'string'});
       }
 
       // Measure owner-aware query performance
@@ -385,8 +385,8 @@ describe('Centralized Model Registry', function() {
 
       for (let i = 0; i < modelCount; i++) {
         dataSource.define(`ScaleTest${i}`, {
-          id: { type: 'string', id: true },
-          data: { type: 'string' }
+          id: {type: 'string', id: true},
+          data: {type: 'string'},
         });
       }
 
@@ -478,7 +478,7 @@ describe('Centralized Model Registry', function() {
 
     describe('Bug #2: App Model Registration', function() {
       it('should register models for App instances using registerModelForApp', function() {
-        const User = dataSource.define('User', { name: 'string' });
+        const User = dataSource.define('User', {name: 'string'});
 
         // Register model for app
         ModelRegistry.registerModelForApp(mockApp, User);
@@ -494,7 +494,7 @@ describe('Centralized Model Registry', function() {
       });
 
       it('should support app.model() integration pattern', function() {
-        const Product = dataSource.define('Product', { title: 'string' });
+        const Product = dataSource.define('Product', {title: 'string'});
 
         // Simulate app.model() call
         mockApp.model(Product);
@@ -515,8 +515,8 @@ describe('Centralized Model Registry', function() {
         app2.models = {};
         app2.model = mockApp.model;
 
-        const User1 = dataSource.define('User1', { name: 'string' });
-        const User2 = dataSource.define('User2', { email: 'string' });
+        const User1 = dataSource.define('User1', {name: 'string'});
+        const User2 = dataSource.define('User2', {email: 'string'});
 
         ModelRegistry.registerModelForApp(app1, User1);
         ModelRegistry.registerModelForApp(app2, User2);
@@ -530,7 +530,7 @@ describe('Centralized Model Registry', function() {
 
     describe('Bug #3: API Consistency and Parameter Order', function() {
       beforeEach(function() {
-        const User = dataSource.define('User', { name: 'string' });
+        const User = dataSource.define('User', {name: 'string'});
         ModelRegistry.registerModelForApp(mockApp, User);
       });
 
@@ -565,7 +565,7 @@ describe('Centralized Model Registry', function() {
       });
 
       it('should work with both DataSource and App owners', function() {
-        const dsUser = dataSource.define('DSUser', { name: 'string' });
+        const dsUser = dataSource.define('DSUser', {name: 'string'});
 
         // Test DataSource with simplified API
         const dsModels = ModelRegistry.getModelsForOwner(dataSource);

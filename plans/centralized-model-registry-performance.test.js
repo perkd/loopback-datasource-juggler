@@ -1,6 +1,6 @@
-const { expect } = require('chai');
+const {expect} = require('chai');
 const loopback = require('../lib/loopback');
-const { ModelRegistry } = require('loopback-datasource-juggler');
+const {ModelRegistry} = require('loopback-datasource-juggler');
 
 describe('Centralized Model Registry Performance & Memory Management', function() {
   // Extended timeout for performance tests
@@ -23,7 +23,7 @@ describe('Centralized Model Registry Performance & Memory Management', function(
         heapUsed: usage.heapUsed,
         heapTotal: usage.heapTotal,
         external: usage.external,
-        rss: usage.rss
+        rss: usage.rss,
       };
       this.snapshots.push(snapshot);
       return snapshot;
@@ -37,13 +37,13 @@ describe('Centralized Model Registry Performance & Memory Management', function(
     getMemoryDelta(fromSnapshot, toSnapshot) {
       const from = fromSnapshot || this.baseline;
       const to = toSnapshot || this.snapshots[this.snapshots.length - 1];
-      
+
       return {
         heapUsedDelta: to.heapUsed - from.heapUsed,
         heapTotalDelta: to.heapTotal - from.heapTotal,
         externalDelta: to.external - from.external,
         rssDelta: to.rss - from.rss,
-        timeDelta: to.timestamp - from.timestamp
+        timeDelta: to.timestamp - from.timestamp,
       };
     }
 
@@ -60,7 +60,7 @@ describe('Centralized Model Registry Performance & Memory Management', function(
         snapshots: this.snapshots.length,
         baseline: this.baseline,
         current: this.snapshots[this.snapshots.length - 1],
-        totalDelta: this.getMemoryDelta()
+        totalDelta: this.getMemoryDelta(),
       };
 
       console.log('\n=== MEMORY USAGE REPORT ===');
@@ -90,14 +90,14 @@ describe('Centralized Model Registry Performance & Memory Management', function(
       const start = process.hrtime.bigint();
       const result = await asyncFn();
       const end = process.hrtime.bigint();
-      
+
       const measurement = {
         label,
         duration: Number(end - start) / 1000000, // Convert to milliseconds
         timestamp: Date.now(),
-        result
+        result,
       };
-      
+
       this.measurements.push(measurement);
       return measurement;
     }
@@ -106,14 +106,14 @@ describe('Centralized Model Registry Performance & Memory Management', function(
       const start = process.hrtime.bigint();
       const result = fn();
       const end = process.hrtime.bigint();
-      
+
       const measurement = {
         label,
         duration: Number(end - start) / 1000000, // Convert to milliseconds
         timestamp: Date.now(),
-        result
+        result,
       };
-      
+
       this.measurements.push(measurement);
       return measurement;
     }
@@ -132,7 +132,7 @@ describe('Centralized Model Registry Performance & Memory Management', function(
         mean: sum / durations.length,
         median: durations[Math.floor(durations.length / 2)],
         p95: durations[Math.floor(durations.length * 0.95)],
-        p99: durations[Math.floor(durations.length * 0.99)]
+        p99: durations[Math.floor(durations.length * 0.99)],
       };
     }
 
@@ -144,7 +144,7 @@ describe('Centralized Model Registry Performance & Memory Management', function(
       labels.forEach(label => {
         const stats = this.getStatistics(label);
         report[label] = stats;
-        
+
         console.log(`\n${label}:`);
         console.log(`  Count: ${stats.count}`);
         console.log(`  Mean: ${stats.mean.toFixed(3)}ms`);
@@ -170,19 +170,19 @@ describe('Centralized Model Registry Performance & Memory Management', function(
     captureInitialState() {
       this.initialState = {
         modelRegistrySize: ModelRegistry.getAllModels().size,
-        memoryUsage: process.memoryUsage()
+        memoryUsage: process.memoryUsage(),
       };
     }
 
     verifyCleanup() {
       const currentState = {
         modelRegistrySize: ModelRegistry.getAllModels().size,
-        memoryUsage: process.memoryUsage()
+        memoryUsage: process.memoryUsage(),
       };
 
       const isClean = {
         modelRegistry: currentState.modelRegistrySize <= this.initialState.modelRegistrySize,
-        memoryReasonable: currentState.memoryUsage.heapUsed <= this.initialState.memoryUsage.heapUsed * 1.1 // Allow 10% variance
+        memoryReasonable: currentState.memoryUsage.heapUsed <= this.initialState.memoryUsage.heapUsed * 1.1, // Allow 10% variance
       };
 
       return {
@@ -190,8 +190,8 @@ describe('Centralized Model Registry Performance & Memory Management', function(
         details: {
           modelRegistryDelta: currentState.modelRegistrySize - this.initialState.modelRegistrySize,
           heapUsedDelta: currentState.memoryUsage.heapUsed - this.initialState.memoryUsage.heapUsed,
-          ...isClean
-        }
+          ...isClean,
+        },
       };
     }
   }
@@ -199,13 +199,13 @@ describe('Centralized Model Registry Performance & Memory Management', function(
   beforeEach(function() {
     // Create fresh instances for each test
     app = loopback();
-    dataSource = loopback.createDataSource({ connector: 'memory' });
+    dataSource = loopback.createDataSource({connector: 'memory'});
     app.dataSource('db', dataSource);
 
     // Initialize test infrastructure
     memoryTracker = new MemoryTracker();
     performanceTracker = new PerformanceTracker();
-    
+
     // Set memory baseline
     memoryTracker.setBaseline('test-start');
   });
@@ -235,14 +235,14 @@ describe('Centralized Model Registry Performance & Memory Management', function(
   });
 
   // Utility function to create test models
-  function createTestModel(name, properties = { id: 'number', name: 'string' }) {
+  function createTestModel(name, properties = {id: 'number', name: 'string'}) {
     return dataSource.define(name, properties);
   }
 
   // Utility function to create app-owned models
-  function createAppModel(name, properties = { id: 'number', name: 'string' }) {
+  function createAppModel(name, properties = {id: 'number', name: 'string'}) {
     const model = app.registry.createModel(name, properties);
-    app.model(model, { dataSource: 'db' });
+    app.model(model, {dataSource: 'db'});
     return model;
   }
 
@@ -256,9 +256,9 @@ describe('Centralized Model Registry Performance & Memory Management', function(
         const models = [];
         for (let i = 0; i < 50; i++) {
           models.push(createTestModel(`TestModel${i}`, {
-            id: { type: 'number', id: true },
+            id: {type: 'number', id: true},
             name: 'string',
-            data: 'object'
+            data: 'object',
           }));
         }
 
@@ -283,11 +283,11 @@ describe('Centralized Model Registry Performance & Memory Management', function(
         // Check memory usage
         const creationDelta = memoryTracker.getMemoryDelta(
           memoryTracker.snapshots[0],
-          memoryTracker.snapshots[1]
+          memoryTracker.snapshots[1],
         );
         const cleanupDelta = memoryTracker.getMemoryDelta(
           memoryTracker.snapshots[1],
-          memoryTracker.snapshots[2]
+          memoryTracker.snapshots[2],
         );
 
         // Memory should be released after cleanup (allowing for GC variance in test environment)
@@ -302,9 +302,9 @@ describe('Centralized Model Registry Performance & Memory Management', function(
         const models = [];
         for (let i = 0; i < 50; i++) {
           models.push(createAppModel(`AppModel${i}`, {
-            id: { type: 'number', id: true },
+            id: {type: 'number', id: true},
             name: 'string',
-            metadata: 'object'
+            metadata: 'object',
           }));
         }
 
@@ -330,7 +330,7 @@ describe('Centralized Model Registry Performance & Memory Management', function(
         // Check memory delta
         const totalDelta = memoryTracker.getMemoryDelta(
           memoryTracker.snapshots[0],
-          memoryTracker.snapshots[2]
+          memoryTracker.snapshots[2],
         );
 
         // Memory usage should not grow significantly after cleanup (allow for test environment variance)
@@ -371,7 +371,7 @@ describe('Centralized Model Registry Performance & Memory Management', function(
 
         const finalDelta = memoryTracker.getMemoryDelta(
           memoryTracker.snapshots[0],
-          memoryTracker.snapshots[3]
+          memoryTracker.snapshots[3],
         );
 
         // Memory should return close to baseline (allow for test environment variance)
@@ -391,7 +391,7 @@ describe('Centralized Model Registry Performance & Memory Management', function(
           const model = createTestModel(dynamicName, {
             id: 'number',
             timestamp: 'date',
-            data: 'object'
+            data: 'object',
           });
           dynamicModels.push(model);
         }
@@ -413,7 +413,7 @@ describe('Centralized Model Registry Performance & Memory Management', function(
 
         const memoryDelta = memoryTracker.getMemoryDelta(
           memoryTracker.snapshots[0],
-          memoryTracker.snapshots[2]
+          memoryTracker.snapshots[2],
         );
 
         // Memory should be properly released
@@ -450,7 +450,7 @@ describe('Centralized Model Registry Performance & Memory Management', function(
 
         const gcDelta = memoryTracker.getMemoryDelta(
           memoryTracker.snapshots[1],
-          memoryTracker.snapshots[2]
+          memoryTracker.snapshots[2],
         );
 
         // Garbage collection should have some effect (allow for some variance)
@@ -497,7 +497,7 @@ describe('Centralized Model Registry Performance & Memory Management', function(
 
         const clearDelta = memoryTracker.getMemoryDelta(
           memoryTracker.snapshots[1],
-          memoryTracker.snapshots[3]
+          memoryTracker.snapshots[3],
         );
 
         // Memory should be reduced after clear and GC (allow for GC timing variance)
@@ -546,7 +546,7 @@ describe('Centralized Model Registry Performance & Memory Management', function(
 
         const operationsDelta = memoryTracker.getMemoryDelta(
           memoryTracker.snapshots[0],
-          memoryTracker.snapshots[1]
+          memoryTracker.snapshots[1],
         );
 
         // Operations should not cause significant memory growth
@@ -559,9 +559,9 @@ describe('Centralized Model Registry Performance & Memory Management', function(
         memoryTracker.takeSnapshot('tenant-isolation-start');
 
         // Create multiple DataSources (simulating tenants)
-        const dataSource1 = loopback.createDataSource({ connector: 'memory' });
-        const dataSource2 = loopback.createDataSource({ connector: 'memory' });
-        const dataSource3 = loopback.createDataSource({ connector: 'memory' });
+        const dataSource1 = loopback.createDataSource({connector: 'memory'});
+        const dataSource2 = loopback.createDataSource({connector: 'memory'});
+        const dataSource3 = loopback.createDataSource({connector: 'memory'});
 
         // Create models for each DataSource
         const ds1Models = [];
@@ -569,9 +569,9 @@ describe('Centralized Model Registry Performance & Memory Management', function(
         const ds3Models = [];
 
         for (let i = 0; i < 10; i++) {
-          ds1Models.push(dataSource1.define(`DS1Model${i}`, { id: 'number', name: 'string' }));
-          ds2Models.push(dataSource2.define(`DS2Model${i}`, { id: 'number', name: 'string' }));
-          ds3Models.push(dataSource3.define(`DS3Model${i}`, { id: 'number', name: 'string' }));
+          ds1Models.push(dataSource1.define(`DS1Model${i}`, {id: 'number', name: 'string'}));
+          ds2Models.push(dataSource2.define(`DS2Model${i}`, {id: 'number', name: 'string'}));
+          ds3Models.push(dataSource3.define(`DS3Model${i}`, {id: 'number', name: 'string'}));
         }
 
         memoryTracker.takeSnapshot('after-tenant-models');
@@ -606,7 +606,7 @@ describe('Centralized Model Registry Performance & Memory Management', function(
 
         const isolationDelta = memoryTracker.getMemoryDelta(
           memoryTracker.snapshots[0],
-          memoryTracker.snapshots[2]
+          memoryTracker.snapshots[2],
         );
 
         // Memory should be properly cleaned up
@@ -667,10 +667,10 @@ describe('Centralized Model Registry Performance & Memory Management', function(
         const creationMeasurement = performanceTracker.measure('high-volume-ds-creation', () => {
           for (let i = 0; i < modelCount; i++) {
             models.push(createTestModel(`HighVolumeDS${i}`, {
-              id: { type: 'number', id: true },
+              id: {type: 'number', id: true},
               name: 'string',
               index: 'number',
-              metadata: 'object'
+              metadata: 'object',
             }));
           }
           return models.length;
@@ -696,7 +696,7 @@ describe('Centralized Model Registry Performance & Memory Management', function(
         // Memory usage should be reasonable
         const memoryDelta = memoryTracker.getMemoryDelta(
           memoryTracker.snapshots[0],
-          memoryTracker.snapshots[1]
+          memoryTracker.snapshots[1],
         );
 
         // Should use less than 50MB for 1000 models
@@ -719,10 +719,10 @@ describe('Centralized Model Registry Performance & Memory Management', function(
         const creationMeasurement = performanceTracker.measure('high-volume-app-creation', () => {
           for (let i = 0; i < modelCount; i++) {
             models.push(createAppModel(`HighVolumeApp${i}`, {
-              id: { type: 'number', id: true },
+              id: {type: 'number', id: true},
               name: 'string',
               appIndex: 'number',
-              config: 'object'
+              config: 'object',
             }));
           }
           return models.length;
@@ -770,7 +770,7 @@ describe('Centralized Model Registry Performance & Memory Management', function(
             appModels.push(createAppModel(`MixedApp${i}`));
           }
 
-          return { dsModels: dsModels.length, appModels: appModels.length };
+          return {dsModels: dsModels.length, appModels: appModels.length};
         });
 
         memoryTracker.takeSnapshot('after-mixed-creation');
@@ -824,19 +824,19 @@ describe('Centralized Model Registry Performance & Memory Management', function(
           concurrentPromises.push(
             performanceTracker.measureAsync(`concurrent-ds-query-${i}`, async () => {
               return ModelRegistry.getModelsForOwner(dataSource, 'dataSource');
-            })
+            }),
           );
 
           concurrentPromises.push(
             performanceTracker.measureAsync(`concurrent-app-query-${i}`, async () => {
               return ModelRegistry.getModelsForOwner(app, 'app');
-            })
+            }),
           );
 
           concurrentPromises.push(
             performanceTracker.measureAsync(`concurrent-find-${i}`, async () => {
               return ModelRegistry.findModelByName(`ConcurrentModel${i % modelCount}`);
-            })
+            }),
           );
         }
 
@@ -887,7 +887,7 @@ describe('Centralized Model Registry Performance & Memory Management', function(
                 batchModels.push(createTestModel(modelName));
               }
               return batchModels.length;
-            })
+            }),
           );
         }
 
@@ -1147,7 +1147,7 @@ describe('Centralized Model Registry Performance & Memory Management', function(
         // Check for memory leaks
         const usageDelta = memoryTracker.getMemoryDelta(
           memoryTracker.snapshots[1],
-          memoryTracker.snapshots[2]
+          memoryTracker.snapshots[2],
         );
 
         // Heavy usage should not cause significant memory growth
@@ -1322,10 +1322,10 @@ describe('Centralized Model Registry Performance & Memory Management', function(
           // Create models
           for (let i = 0; i < stepSize; i++) {
             createTestModel(`MemoryMetric${i}`, {
-              id: { type: 'number', id: true },
+              id: {type: 'number', id: true},
               name: 'string',
               data: 'object',
-              metadata: 'object'
+              metadata: 'object',
             });
           }
 
@@ -1336,7 +1336,7 @@ describe('Centralized Model Registry Performance & Memory Management', function(
             modelCount: stepSize,
             heapUsedDelta: delta.heapUsedDelta,
             heapTotalDelta: delta.heapTotalDelta,
-            memoryPerModel: delta.heapUsedDelta / stepSize
+            memoryPerModel: delta.heapUsedDelta / stepSize,
           });
         }
 
@@ -1379,18 +1379,18 @@ describe('Centralized Model Registry Performance & Memory Management', function(
         const testCases = [
           {
             name: 'simple-models',
-            properties: { id: 'number', name: 'string' }
+            properties: {id: 'number', name: 'string'},
           },
           {
             name: 'complex-models',
             properties: {
-              id: { type: 'number', id: true },
-              name: { type: 'string', required: true },
-              email: { type: 'string', index: true },
+              id: {type: 'number', id: true},
+              name: {type: 'string', required: true},
+              email: {type: 'string', index: true},
               metadata: 'object',
               config: 'object',
-              timestamps: 'object'
-            }
+              timestamps: 'object',
+            },
           },
           {
             name: 'relation-models',
@@ -1399,9 +1399,9 @@ describe('Centralized Model Registry Performance & Memory Management', function(
               name: 'string',
               userId: 'number',
               categoryId: 'number',
-              tags: ['string']
-            }
-          }
+              tags: ['string'],
+            },
+          },
         ];
 
         const modelCount = 100;
@@ -1428,7 +1428,7 @@ describe('Centralized Model Registry Performance & Memory Management', function(
             type: testCase.name,
             totalMemory: delta.heapUsedDelta,
             memoryPerModel: Math.abs(delta.heapUsedDelta) / modelCount, // Use absolute value to handle GC
-            propertyCount: Object.keys(testCase.properties).length
+            propertyCount: Object.keys(testCase.properties).length,
           });
         }
 
@@ -1472,7 +1472,7 @@ describe('Centralized Model Registry Performance & Memory Management', function(
 
           // Benchmark various query types
           const iterations = 50;
-          const sizeData = { modelCount: size };
+          const sizeData = {modelCount: size};
 
           // Benchmark getModelsForOwner
           for (let i = 0; i < iterations; i++) {
@@ -1532,7 +1532,7 @@ describe('Centralized Model Registry Performance & Memory Management', function(
             `${data.getModelsApp.mean.toFixed(2).padStart(14)}ms | ` +
             `${data.getNamesDS.mean.toFixed(2).padStart(12)}ms | ` +
             `${data.hasModelDS.mean.toFixed(2).padStart(11)}ms | ` +
-            `${data.getModelDS.mean.toFixed(2).padStart(11)}ms`
+            `${data.getModelDS.mean.toFixed(2).padStart(11)}ms`,
           );
         });
 
@@ -1693,7 +1693,7 @@ describe('Centralized Model Registry Performance & Memory Management', function(
             id: 'number',
             name: 'string',
             data: 'object',
-            largeField: 'string' // Simulate larger models
+            largeField: 'string', // Simulate larger models
           });
         }
 
@@ -1797,10 +1797,10 @@ describe('Centralized Model Registry Performance & Memory Management', function(
 
     it('should track memory usage correctly', function() {
       const before = memoryTracker.takeSnapshot('before-allocation');
-      
+
       // Allocate some memory
       const largeArray = new Array(100000).fill('test');
-      
+
       const after = memoryTracker.takeSnapshot('after-allocation');
       const delta = memoryTracker.getMemoryDelta(before, after);
 
