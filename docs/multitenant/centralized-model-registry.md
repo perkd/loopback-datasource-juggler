@@ -1,4 +1,4 @@
-# Centralized Model Registry Enhancement (v5.2.4)
+# Centralized Model Registry Enhancement (v5.2.6)
 
 > **✅ STATUS: IMPLEMENTED AND FUNCTIONAL**
 > **📊 Test Success Rate: 32/32 centralized registry tests passing (100%)**
@@ -484,7 +484,7 @@ Object.defineProperty(DataSource.prototype, 'models', {
 
 ### Package Requirements
 
-- **loopback-datasource-juggler**: Version 5.2.4 or higher
+- **loopback-datasource-juggler**: Version 5.2.6 or higher
 - **Node.js**: Version 20.x or higher (as per package.json engines)
 - **Existing LoopBack applications**: Full backward compatibility
 
@@ -790,7 +790,7 @@ ModelRegistry.cleanupTenant(tenantCode);
 
 **Test Results:**
 - **Centralized Registry Tests**: 32/32 tests passing ✅
-- **Overall Test Suite**: 2341 tests passing (with 158 pending)
+- **Overall Test Suite**: 2360 tests passing (with 158 pending)
 - **Success Rate**: 100% for centralized registry functionality
 - **Test Execution**: Efficient execution with performance validation
 - **Coverage**: Core functionality, edge cases, tenant isolation, and backward compatibility
@@ -915,7 +915,7 @@ Expected results:
 - ✅ 26/26 ModelRegistry Edge Cases tests passing
 - ✅ 13/13 Core ModelRegistry tests passing
 - ✅ 21/21 Tenant-Aware ModelRegistry tests passing
-- ✅ 2324/2327 Total test suite passing (99.87% success rate)
+- ✅ 2360/2518 Total test suite passing (93.7% success rate, 158 pending)
 
 ## Migration Guide
 
@@ -1055,7 +1055,7 @@ This will show:
 
 If you encounter issues not covered in this guide:
 
-1. **Check Version**: Ensure you're using loopback-datasource-juggler 5.2.4+
+1. **Check Version**: Ensure you're using loopback-datasource-juggler 5.2.6+
 2. **Run Tests**: Execute the validation checklist above
 3. **Enable Debug**: Use debug logging to identify the issue
 4. **Create Issue**: Report bugs with debug output and reproduction steps
