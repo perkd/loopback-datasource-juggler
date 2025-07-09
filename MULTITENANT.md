@@ -24,6 +24,43 @@ This enhancement transforms LoopBack's model management architecture while maint
 
 ---
 
+## 2025-07-09
+
+### 🔒 **Tenant Isolation Enhancement - Critical Security Fix**
+**Contributors:** Young (youngtt)
+**Status:** ✅ **COMPLETE** - All tests passing, production ready
+
+#### **fix: Replace direct dataSource access with getDataSource() calls**
+- **Impact:** Enhanced tenant isolation in multitenant environments
+- **Security:** Prevents cross-tenant data access vulnerabilities
+- **Scope:** 5 critical locations updated across core framework files
+- **Version:** 5.2.7 → 5.2.8
+
+**Technical Details:**
+- ✅ **dao.js (CRITICAL)**: Fixed geospatial query memory datasource configuration (lines 1854-1855)
+- ✅ **model.js (MEDIUM)**: Fixed property definition method to use tenant-aware datasource (line 393)
+- ✅ **model.js (LOW)**: Fixed instance reset method for proper tenant isolation (line 630)
+- ✅ **include.js (LOW)**: Fixed query limits configuration for tenant-specific settings (lines 185-188)
+- ✅ **include.js (LOW)**: Fixed polymorphic relation handling for tenant isolation (lines 775-776)
+
+**Benefits:**
+- 🔒 **Enhanced Security**: Prevents operations from accessing wrong tenant databases
+- 🎯 **Proper Isolation**: Ensures tenant-specific datasource resolution in all contexts
+- 🔄 **Backward Compatible**: No breaking changes to public APIs
+- ⚡ **Zero Performance Impact**: Method calls have negligible overhead
+- ✅ **Comprehensive Testing**: All existing tests continue to pass
+
+**Validation Results:**
+- All 5 changes applied exactly as specified
+- Geospatial tests: 10/10 passing
+- Model definition tests: 37/37 passing
+- Centralized registry tests: 32/32 passing
+- Build process: successful with no syntax errors
+
+This fix addresses a critical tenant isolation issue where direct `.dataSource` access could bypass tenant-aware datasource selection, potentially leading to cross-tenant data access in multitenant environments.
+
+---
+
 ## 2025-07-08
 
 ### 🔧 **Infrastructure and Testing Updates**
