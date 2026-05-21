@@ -99,7 +99,7 @@ console.log(ModelRegistry.getModelsForOwner(dataSource).length); // 0
 
 The enhancement is designed for **zero-effort migration**:
 
-1. **Update Package**: `npm update loopback-datasource-juggler`
+1. **Update Package**: `yarn up loopback-datasource-juggler`
 2. **Restart Application**: No code changes required
 3. **Verify Operation**: Application works identically
 
@@ -111,7 +111,7 @@ All existing code patterns continue to work without modification.
 The documentation includes automated validation tests to ensure accuracy:
 
 ```bash
-npm test test/documentation-validation.test.js
+yarn test test/documentation-validation.test.js
 ```
 
 These tests validate:
@@ -140,7 +140,7 @@ This documentation has been updated to accurately reflect the actual implementat
 When updating this documentation:
 
 1. **Verify Against Implementation**: Ensure all examples and API descriptions match the actual code
-2. **Run Validation Tests**: Execute `npm test test/documentation-validation.test.js` to verify accuracy
+2. **Run Validation Tests**: Execute `yarn test test/documentation-validation.test.js` to verify accuracy
 3. **Update Tests**: Add new validation tests for any new documented features
 4. **Maintain Accuracy**: Avoid aspirational claims - document what is actually implemented
 
