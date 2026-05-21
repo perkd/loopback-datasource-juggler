@@ -493,7 +493,7 @@ Object.defineProperty(DataSource.prototype, 'models', {
 #### Step 1: Update Package Dependencies
 
 ```bash
-npm update loopback-datasource-juggler
+yarn up loopback-datasource-juggler
 ```
 
 #### Step 2: Verify Integration (Optional)
@@ -901,13 +901,13 @@ Run the comprehensive test suite:
 
 ```bash
 # Test centralized registry functionality
-npm test -- --grep "Centralized Model Registry"
+yarn test --grep "Centralized Model Registry"
 
 # Test existing ModelRegistry functionality
-npm test -- --grep "Model Registry"
+yarn test --grep "Model Registry"
 
 # Test DataSource functionality
-npm test -- --grep "DataSource"
+yarn test --grep "DataSource"
 ```
 
 Expected results:
@@ -929,7 +929,7 @@ New applications automatically benefit from the centralized model registry with 
 
 The enhancement is designed for **zero-effort migration**:
 
-1. **Update Package**: `npm update loopback-datasource-juggler`
+1. **Update Package**: `yarn up loopback-datasource-juggler`
 2. **Restart Application**: No code changes required
 3. **Verify Operation**: Application works identically to before
 
@@ -990,7 +990,7 @@ const User = dataSource.define('User', userProperties, userSettings);
 
 **Solution:**
 ```bash
-npm update loopback-datasource-juggler
+yarn up loopback-datasource-juggler
 # Ensure version 5.2.4 or higher
 ```
 

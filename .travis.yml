@@ -8,19 +8,13 @@ arch:
 dist: bionic
 language: node_js
 before_install: |
-  NODEJS_VERSION=$(node --version)
-  if [ 'v10' = ${NODEJS_VERSION%%.*} ]
-  then
-    npm install --global npm@7
-  else
-    npm install --global npm@8
-  fi
+  corepack enable
+  yarn --version
 script:
-  - npm run --ignore-scripts build
-  - npm test --ignore-scripts
+  - yarn install --immutable
+  - yarn build
+  - yarn test
 node_js:
-  - 10.24.1
-  - 12.22.12
-  - 14.21.3
-  - 16.20.2
-  - 17.9.1
+  - 20
+  - 22
+  - 24
