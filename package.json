@@ -1,6 +1,6 @@
 {
   "name": "loopback-datasource-juggler",
-  "version": "5.2.10",
+  "version": "5.2.11",
   "publishConfig": {
     "export-tests": true
   },
@@ -17,7 +17,7 @@
   "author": "IBM Corp.",
   "license": "MIT",
   "engines": {
-    "node": ">=24"
+    "node": ">=20"
   },
   "repository": {
     "type": "git",
@@ -30,13 +30,13 @@
   },
   "scripts": {
     "lint": "eslint .",
-    "build": "npm run build-ts-types",
+    "build": "yarn build-ts-types",
     "build-ts-types": "tsc -p tsconfig.json --outDir dist",
-    "pretest": "npm run build",
+    "pretest": "yarn build",
     "test": "nyc mocha",
-    "posttest": "npm run lint",
+    "posttest": "yarn lint",
     "update": "ncu -u -x nanoid",
-    "reinstall": "rm -rf node_modules/ && rm yarn.lock && yarn install"
+    "reinstall": "rm -rf node_modules/ && yarn install --immutable"
   },
   "dependencies": {
     "async": "^3.2.6",
@@ -51,7 +51,7 @@
     "neotraverse": "^0.6.18",
     "qs": "^6.15.2",
     "strong-globalize": "^6.0.6",
-    "uuid": "^14.0.0"
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.0.1",

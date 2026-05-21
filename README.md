@@ -89,8 +89,9 @@ This is a private fork. Clone the repository and use the specific tag:
 ```bash
 git clone git@github.com:perkd/loopback-datasource-juggler.git
 cd loopback-datasource-juggler
-git checkout v5.2.9
-npm install
+git checkout v5.2.10
+corepack enable
+yarn install --immutable
 ```
 
 ## Compatibility

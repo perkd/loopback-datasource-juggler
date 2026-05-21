@@ -18,12 +18,12 @@ Contributing to `loopback-datasource-juggler` is easy. In a few simple steps:
 
   * Run lint to check adherence the style guide. Note this is also run at the end of the tests.
     ```
-    npm run lint
+    yarn lint
     ```
 
   * Run tests and verify that they pass, or any that fail already failed before you introduced your change.
     ```
-    npm run test
+    yarn test
     ```
 
   * Sign the [Contributor License Agreement](https://cla.strongloop.com/agreements/strongloop/loopback-datasource-juggler)
