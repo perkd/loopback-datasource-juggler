@@ -728,6 +728,25 @@ describe('DataSource', function() {
       assert.equal(state.allCalls, 0);
     });
 
+    it('throws CONNECTOR_DETACHED from getConnector() when back-reference is cleared', async () => {
+      const {ds, Model} = givenQueryableModel();
+      await ds.connect();
+
+      ds.connector.dataSource = null;
+
+      assert.throws(() => Model.getConnector(), {code: 'CONNECTOR_DETACHED'});
+    });
+
+    it('rejects KVAO get() when connector back-reference is cleared', async () => {
+      const kvMemory = require('../lib/connectors/kv-memory');
+      const ds = new DataSource({connector: kvMemory});
+      const KVModel = ds.define('KVModel');
+
+      ds.connector.dataSource = null;
+
+      await assert.rejects(KVModel.get('anykey'), {code: 'CONNECTOR_DETACHED'});
+    });
+
     it('keeps healthy connector wiring working for find', async () => {
       const {Model} = givenQueryableModel();
 
