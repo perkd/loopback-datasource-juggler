@@ -1,4 +1,4 @@
-import * as buildModelTypes from '../types';
+import buildModelTypes = require('../types');
 import {ModelTypes, Type, Types} from '../types';
 
 let stringTypeGuard: string;
@@ -10,6 +10,6 @@ voidTypeGuard = Types.JSON(new Types.JSON('test'));
 jsonTypeGuard = new Types.JSON('test');
 const modelTypes: ModelTypes = {}
 buildModelTypes(modelTypes);
-voidTypeGuard = modelTypes.registerType({} as Type);
-voidTypeGuard = modelTypes.registerType({} as Type, ['custom name 1']);
-modelTypes.schemaTypes;
+voidTypeGuard = (modelTypes as buildModelTypes.BuiltModelTypes).registerType({} as Type);
+voidTypeGuard = (modelTypes as buildModelTypes.BuiltModelTypes).registerType({} as Type, ['custom name 1']);
+(modelTypes as buildModelTypes.BuiltModelTypes).schemaTypes;

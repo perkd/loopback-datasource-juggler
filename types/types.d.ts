@@ -37,7 +37,7 @@ declare namespace registerModelTypes {
   }
 
   interface ModelTypes {
-    [type: string]: Type | unknown;
+    [type: string]: unknown;
   }
 
   interface Type {
