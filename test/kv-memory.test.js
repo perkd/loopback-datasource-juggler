@@ -4,6 +4,7 @@
 // License text available at https://opensource.org/licenses/MIT
 
 'use strict';
+const {describe} = require('node:test');
 const kvMemory = require('../lib/connectors/kv-memory');
 const DataSource = require('..').DataSource;
 

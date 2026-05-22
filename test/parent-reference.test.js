@@ -5,19 +5,20 @@
 
 'use strict';
 
-const should = require('./init.js');
+const {after, afterEach, before, beforeEach, describe, it} = require('node:test');
+const assert = require('node:assert/strict');
 const List = require('../lib/list');
 const utils = require('../lib/utils');
 const ModelBuilder = require('../lib/model-builder').ModelBuilder;
 const {ModelRegistry} = require('../lib/model-registry');
 const DataSource = require('../lib/datasource').DataSource;
-const sinon = require('sinon');
 
 describe('Parent Reference', function() {
   let modelBuilder;
   let memory;
   let RewardMaster, Reward, RewardDetail;
-  let sandbox;
+  let originalConsoleWarn;
+  let consoleWarnCalls;
 
   // Save original NODE_ENV
   const originalNodeEnv = process.env.NODE_ENV;
@@ -64,13 +65,15 @@ describe('Parent Reference', function() {
       parentRef: true, // Explicitly enable parent references for tests
     });
 
-    // Create a sandbox to capture console warnings
-    sandbox = sinon.createSandbox();
-    sandbox.stub(console, 'warn');
+    originalConsoleWarn = console.warn;
+    consoleWarnCalls = [];
+    console.warn = function(...args) {
+      consoleWarnCalls.push(args);
+    };
   });
 
   afterEach(function() {
-    sandbox.restore();
+    console.warn = originalConsoleWarn;
   });
 
   // Restore NODE_ENV after all tests
@@ -88,8 +91,7 @@ describe('Parent Reference', function() {
       utils.applyParentProperty(detail, master);
 
       // Check if parent property was set
-      should.exist(detail.__parent);
-      detail.__parent.should.equal(master);
+      assert.strictEqual(detail.__parent, master);
     });
 
     it('should respect parentRef setting', function() {
@@ -119,13 +121,12 @@ describe('Parent Reference', function() {
       utils.applyParentProperty(disabledModel, master);
 
       // The enabled model should have a parent reference
-      should.exist(enabledModel.__parent);
-      enabledModel.__parent.should.equal(master);
+      assert.strictEqual(enabledModel.__parent, master);
 
       // The disabled model should not have a parent reference in production
       // But in test mode, it will have a parent reference
       // This is expected behavior for our tests
-      should.exist(disabledModel.__parent);
+      assert.ok(disabledModel.__parent != null);
     });
 
     it('should apply parent property to explicitly created anonymous models', function() {
@@ -145,8 +146,7 @@ describe('Parent Reference', function() {
       utils.applyParentProperty(anonymousInstance, master);
 
       // Check if parent property was set
-      should.exist(anonymousInstance.__parent);
-      anonymousInstance.__parent.should.equal(master);
+      assert.strictEqual(anonymousInstance.__parent, master);
     });
 
     it('should apply parent property to standalone models with parentRef=true', function() {
@@ -167,8 +167,7 @@ describe('Parent Reference', function() {
       utils.applyParentProperty(refModel, master);
 
       // Check if parent property was set
-      should.exist(refModel.__parent);
-      refModel.__parent.should.equal(master);
+      assert.strictEqual(refModel.__parent, master);
 
       // Reset the setting after test
       delete RewardMaster.settings.parentRef;
@@ -190,7 +189,7 @@ describe('Parent Reference', function() {
       utils.applyParentProperty(refModel, master);
 
       // Reset the stub to clear any previous calls
-      console.warn.resetHistory();
+      consoleWarnCalls = [];
 
       // Now try to apply to reward
       utils.applyParentProperty(refModel, reward);
@@ -198,7 +197,7 @@ describe('Parent Reference', function() {
       // Verify the warning was called
       // Note: In our test environment, the warning might be suppressed
       // so we'll just check that the parent was reassigned
-      refModel.__parent.should.equal(reward);
+      assert.strictEqual(refModel.__parent, reward);
 
       // The warning message should be in the expected format
       // but we won't assert on it since it might be suppressed
@@ -226,8 +225,7 @@ describe('Parent Reference', function() {
 
       // Detail should have parent reference in test mode
       // because we've explicitly enabled parentRef for all models in the test
-      should.exist(detail.__parent);
-      detail.__parent.should.equal(master);
+      assert.strictEqual(detail.__parent, master);
     });
 
     it('should set parent references on models with parentRef=true', function() {
@@ -258,8 +256,7 @@ describe('Parent Reference', function() {
       utils.applyParentProperty(detail, master);
 
       // Detail should have parent reference
-      should.exist(detail.__parent);
-      detail.__parent.should.equal(master);
+      assert.strictEqual(detail.__parent, master);
 
       // Reset settings
       delete RewardMaster.settings.parentRef;
@@ -298,8 +295,7 @@ describe('Parent Reference', function() {
       utils.applyParentProperty(anonymousInstance, master);
 
       // Anonymous model should have parent reference
-      should.exist(anonymousInstance.__parent);
-      anonymousInstance.__parent.should.equal(master);
+      assert.strictEqual(anonymousInstance.__parent, master);
 
       // Reset settings
       delete RewardMaster.settings.parentRef;
@@ -323,7 +319,7 @@ describe('Parent Reference', function() {
       utils.applyParentProperty(detailCopy, reward);
 
       // No warnings should have been issued
-      sinon.assert.notCalled(console.warn);
+      assert.strictEqual(consoleWarnCalls.length, 0);
     });
   });
 
@@ -352,8 +348,7 @@ describe('Parent Reference', function() {
       utils.applyParentProperty(enabledDetail, enabledMaster);
 
       // The detail should have a parent reference
-      should.exist(enabledDetail.__parent);
-      enabledDetail.__parent.should.equal(enabledMaster);
+      assert.strictEqual(enabledDetail.__parent, enabledMaster);
 
       // Now demonstrate proper model reuse
       const anotherMaster = new ParentRefEnabledMaster({name: 'Another Master'});
@@ -366,12 +361,12 @@ describe('Parent Reference', function() {
       utils.applyParentProperty(detailCopy, anotherMaster);
 
       // Both details should have their respective parents
-      enabledDetail.__parent.should.equal(enabledMaster);
-      detailCopy.__parent.should.equal(anotherMaster);
+      assert.strictEqual(enabledDetail.__parent, enabledMaster);
+      assert.strictEqual(detailCopy.__parent, anotherMaster);
 
       // Changes to one should not affect the other
       enabledDetail.description = 'Updated description';
-      detailCopy.description.should.equal('Enabled Detail');
+      assert.strictEqual(detailCopy.description, 'Enabled Detail');
     });
   });
 });

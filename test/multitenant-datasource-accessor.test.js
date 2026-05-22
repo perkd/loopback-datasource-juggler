@@ -5,7 +5,8 @@
 
 'use strict';
 
-const should = require('./init.js');
+const {describe, it, beforeEach, afterEach} = require('node:test');
+const assert = require('node:assert/strict');
 const DataSource = require('../lib/datasource.js').DataSource;
 
 describe('Multitenant DataSource Accessor Fix', function() {
@@ -35,8 +36,8 @@ describe('Multitenant DataSource Accessor Fix', function() {
 
       // Access dataSource property - should trigger getDataSource()
       const ds = TestModel.dataSource;
-      getDataSourceCalled.should.be.true();
-      ds.should.equal(originalDataSource);
+      assert.equal(getDataSourceCalled, true);
+      assert.equal(ds, originalDataSource);
     });
 
     it('should fallback to original datasource when getDataSource() is not defined', function() {
@@ -48,7 +49,7 @@ describe('Multitenant DataSource Accessor Fix', function() {
 
       // Access dataSource property - should return original datasource
       const ds = TestModel.dataSource;
-      ds.should.equal(originalDataSource);
+      assert.equal(ds, originalDataSource);
     });
 
     it('should handle errors in getDataSource() gracefully', function() {
@@ -62,7 +63,7 @@ describe('Multitenant DataSource Accessor Fix', function() {
 
       // Access dataSource property - should fallback to original datasource
       const ds = TestModel.dataSource;
-      ds.should.equal(originalDataSource);
+      assert.equal(ds, originalDataSource);
     });
 
     it('should prevent circular reference loops', function() {
@@ -76,7 +77,7 @@ describe('Multitenant DataSource Accessor Fix', function() {
 
       // Access dataSource property - should not hang and return original datasource
       const ds = TestModel.dataSource;
-      ds.should.equal(originalDataSource);
+      assert.equal(ds, originalDataSource);
     });
 
     it('should allow setting dataSource property during initialization', function() {
@@ -87,7 +88,7 @@ describe('Multitenant DataSource Accessor Fix', function() {
       TestModel.dataSource = newDataSource;
 
       // Should update the _originalDataSource
-      TestModel._originalDataSource.should.equal(newDataSource);
+      assert.equal(TestModel._originalDataSource, newDataSource);
       newDataSource.disconnect();
     });
   });
@@ -104,7 +105,7 @@ describe('Multitenant DataSource Accessor Fix', function() {
 
       // Access dataSource property - should return tenant datasource
       const ds = TestModel.dataSource;
-      ds.should.equal(tenantDataSource);
+      assert.equal(ds, tenantDataSource);
 
       tenantDataSource.disconnect();
     });
@@ -117,8 +118,8 @@ describe('Multitenant DataSource Accessor Fix', function() {
       newDataSource.attach(TestModel);
 
       // Verify the property accessor is set up correctly
-      TestModel._originalDataSource.should.equal(newDataSource);
-      TestModel.dataSource.should.equal(newDataSource);
+      assert.equal(TestModel._originalDataSource, newDataSource);
+      assert.equal(TestModel.dataSource, newDataSource);
 
       newDataSource.disconnect();
     });
@@ -128,8 +129,8 @@ describe('Multitenant DataSource Accessor Fix', function() {
       const newDataSource = new DataSource('memory');
 
       // Verify initial state
-      TestModel._originalDataSource.should.equal(dataSource);
-      TestModel.dataSource.should.equal(dataSource);
+      assert.equal(TestModel._originalDataSource, dataSource);
+      assert.equal(TestModel.dataSource, dataSource);
 
       // Use models setter (deprecated but should still work)
       newDataSource.models = {TestModel: TestModel};
@@ -138,10 +139,10 @@ describe('Multitenant DataSource Accessor Fix', function() {
       // But the property accessor should still work correctly
       // Verify that the property descriptor is still in place
       const descriptor = Object.getOwnPropertyDescriptor(TestModel, 'dataSource');
-      descriptor.should.have.property('get');
-      descriptor.should.have.property('set');
-      descriptor.configurable.should.equal(true);
-      descriptor.enumerable.should.equal(true);
+      assert.ok(descriptor.get);
+      assert.ok(descriptor.set);
+      assert.equal(descriptor.configurable, true);
+      assert.equal(descriptor.enumerable, true);
 
       newDataSource.disconnect();
     });
@@ -152,8 +153,8 @@ describe('Multitenant DataSource Accessor Fix', function() {
       const TestModel = dataSource.define('TestModel', {name: 'string'});
 
       // Standard access should work exactly as before
-      TestModel.dataSource.should.equal(dataSource);
-      TestModel.dataSource.should.be.an.instanceOf(DataSource);
+      assert.equal(TestModel.dataSource, dataSource);
+      assert.ok(TestModel.dataSource instanceof DataSource);
     });
 
     it('should preserve property enumeration behavior', function() {
@@ -161,7 +162,7 @@ describe('Multitenant DataSource Accessor Fix', function() {
 
       // dataSource property should be enumerable
       const descriptor = Object.getOwnPropertyDescriptor(TestModel, 'dataSource');
-      descriptor.enumerable.should.be.true();
+      assert.equal(descriptor.enumerable, true);
     });
 
     it('should preserve property configuration behavior', function() {
@@ -169,19 +170,19 @@ describe('Multitenant DataSource Accessor Fix', function() {
 
       // dataSource property should be configurable
       const descriptor = Object.getOwnPropertyDescriptor(TestModel, 'dataSource');
-      descriptor.configurable.should.be.true();
+      assert.equal(descriptor.configurable, true);
     });
 
     it('should work with existing model operations', function() {
       const TestModel = dataSource.define('TestModel', {name: 'string'});
 
       // Standard model operations should work
-      TestModel.should.have.property('create');
-      TestModel.should.have.property('find');
-      TestModel.should.have.property('findById');
+      assert.ok(TestModel.create);
+      assert.ok(TestModel.find);
+      assert.ok(TestModel.findById);
 
       // DataSource should be accessible for operations
-      TestModel.dataSource.should.equal(dataSource);
+      assert.equal(TestModel.dataSource, dataSource);
     });
   });
 
@@ -201,7 +202,7 @@ describe('Multitenant DataSource Accessor Fix', function() {
       const ds2 = TestModel.dataSource;
       const ds3 = TestModel.dataSource;
 
-      callCount.should.equal(3);
+      assert.equal(callCount, 3);
     });
 
     it('should handle getDataSource() returning different values', function() {
@@ -219,8 +220,8 @@ describe('Multitenant DataSource Accessor Fix', function() {
       const ds1 = TestModel.dataSource;
       const ds2 = TestModel.dataSource;
 
-      ds1.should.equal(tenantDataSource1);
-      ds2.should.equal(tenantDataSource2);
+      assert.equal(ds1, tenantDataSource1);
+      assert.equal(ds2, tenantDataSource2);
 
       tenantDataSource1.disconnect();
       tenantDataSource2.disconnect();
@@ -236,7 +237,7 @@ describe('Multitenant DataSource Accessor Fix', function() {
 
       // Should return null as returned by getDataSource()
       const ds = TestModel.dataSource;
-      should(ds).be.null();
+      assert.equal(ds, null);
     });
   });
 
@@ -250,14 +251,14 @@ describe('Multitenant DataSource Accessor Fix', function() {
       // Access property many times
       for (let i = 0; i < 1000; i++) {
         const ds = TestModel.dataSource;
-        ds.should.be.ok();
+        assert.ok(ds);
       }
 
       const [seconds, nanoseconds] = process.hrtime(start);
       const milliseconds = seconds * 1000 + nanoseconds / 1000000;
 
       // Should complete quickly (less than 100ms for 1000 accesses)
-      milliseconds.should.be.below(100);
+      assert.ok(milliseconds < 100);
     });
   });
 });

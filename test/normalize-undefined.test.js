@@ -4,14 +4,11 @@
 // License text available at https://opensource.org/licenses/MIT
 
 'use strict';
+const {before, describe, it} = require('node:test');
+const assert = require('node:assert/strict');
+
 const jdb = require('../');
 const DataSource = jdb.DataSource;
-const path = require('path');
-const fs = require('fs');
-const assert = require('assert');
-const async = require('async');
-const should = require('./init.js');
-const Memory = require('../lib/connectors/memory').Memory;
 
 describe('normalizeUndefinedInQuery', function() {
   describe('with setting "throw"', function() {
@@ -46,43 +43,38 @@ describe('normalizeUndefinedInQuery', function() {
       ],
     });
 
-    before(function(done) {
-      seed(User, done);
+    before(async function() {
+      await seed(User);
     });
 
-    it('should throw if find where contains undefined', function(done) {
-      User.find({where: {name: undefined}}, function(err, users) {
-        should.exist(err);
-        done();
-      });
+    it('should throw if find where contains undefined', async function() {
+      await assert.rejects(
+        User.find({where: {name: undefined}}),
+      );
     });
 
-    it('should throw if destroyAll where contains undefined', function(done) {
-      User.destroyAll({name: undefined}, function(err, count) {
-        should.exist(err);
-        done();
-      });
+    it('should throw if destroyAll where contains undefined', async function() {
+      await assert.rejects(
+        User.destroyAll({name: undefined}),
+      );
     });
 
-    it('should throw if updateAll where contains undefined', function(done) {
-      User.updateAll({name: undefined}, {vip: false}, function(err, count) {
-        should.exist(err);
-        done();
-      });
+    it('should throw if updateAll where contains undefined', async function() {
+      await assert.rejects(
+        User.updateAll({name: undefined}, {vip: false}),
+      );
     });
 
-    it('should throw if upsertWithWhere where contains undefined', function(done) {
-      User.upsertWithWhere({name: undefined}, {vip: false}, function(err, count) {
-        should.exist(err);
-        done();
-      });
+    it('should throw if upsertWithWhere where contains undefined', async function() {
+      await assert.rejects(
+        User.upsertWithWhere({name: undefined}, {vip: false}),
+      );
     });
 
-    it('should throw if count where contains undefined', function(done) {
-      User.count({name: undefined}, function(err, count) {
-        should.exist(err);
-        done();
-      });
+    it('should throw if count where contains undefined', async function() {
+      await assert.rejects(
+        User.count({name: undefined}),
+      );
     });
   });
 
@@ -119,48 +111,36 @@ describe('normalizeUndefinedInQuery', function() {
       normalizeUndefinedInQuery: 'nullify',
     });
 
-    before(function(done) {
-      seed(User, done);
+    before(async function() {
+      await seed(User);
     });
 
-    it('should nullify if find where contains undefined', function(done) {
-      User.find({where: {role: undefined}}, function(err, users) {
-        should.not.exist(err);
-        users.length.should.eql(4);
-        done();
-      });
+    it('should nullify if find where contains undefined', async function() {
+      const users = await User.find({where: {role: undefined}});
+      assert.strictEqual(users.length, 4);
     });
 
-    it('should nullify if updateAll where contains undefined', function(done) {
-      User.updateAll({role: undefined}, {vip: false}, function(err, count) {
-        should.not.exist(err);
-        count.count.should.eql(4);
-        done();
-      });
+    it('should nullify if updateAll where contains undefined', async function() {
+      const count = await User.updateAll({role: undefined}, {vip: false});
+      assert.strictEqual(count.count, 4);
     });
 
-    it('should nullify if upsertWithWhere where contains undefined', function(done) {
-      User.upsertWithWhere({role: undefined, order: 6}, {vip: false}, function(err, user) {
-        should.not.exist(err);
-        user.order.should.eql(6);
-        done();
-      });
+    it('should nullify if upsertWithWhere where contains undefined', async function() {
+      const user = await User.upsertWithWhere(
+        {role: undefined, order: 6},
+        {vip: false},
+      );
+      assert.strictEqual(user.order, 6);
     });
 
-    it('should nullify if count where contains undefined', function(done) {
-      User.count({role: undefined}, function(err, count) {
-        should.not.exist(err);
-        count.should.eql(4);
-        done();
-      });
+    it('should nullify if count where contains undefined', async function() {
+      const count = await User.count({role: undefined});
+      assert.strictEqual(count, 4);
     });
 
-    it('should nullify if destroyAll where contains undefined', function(done) {
-      User.destroyAll({role: undefined}, function(err, count) {
-        should.not.exist(err);
-        count.count.should.eql(4);
-        done();
-      });
+    it('should nullify if destroyAll where contains undefined', async function() {
+      const count = await User.destroyAll({role: undefined});
+      assert.strictEqual(count.count, 4);
     });
   });
 
@@ -197,53 +177,41 @@ describe('normalizeUndefinedInQuery', function() {
       normalizeUndefinedInQuery: 'ignore',
     });
 
-    before(function(done) {
-      seed(User, done);
+    before(async function() {
+      await seed(User);
     });
 
-    it('should ignore if find where contains undefined', function(done) {
-      User.find({where: {role: undefined}}, function(err, users) {
-        should.not.exist(err);
-        users.length.should.eql(6);
-        done();
-      });
+    it('should ignore if find where contains undefined', async function() {
+      const users = await User.find({where: {role: undefined}});
+      assert.strictEqual(users.length, 6);
     });
 
-    it('should ignore if updateAll where contains undefined', function(done) {
-      User.updateAll({role: undefined}, {vip: false}, function(err, count) {
-        should.not.exist(err);
-        count.count.should.eql(6);
-        done();
-      });
+    it('should ignore if updateAll where contains undefined', async function() {
+      const count = await User.updateAll({role: undefined}, {vip: false});
+      assert.strictEqual(count.count, 6);
     });
 
-    it('should ignore if upsertWithWhere where contains undefined', function(done) {
-      User.upsertWithWhere({role: undefined, order: 6}, {vip: false}, function(err, user) {
-        should.not.exist(err);
-        user.order.should.eql(6);
-        done();
-      });
+    it('should ignore if upsertWithWhere where contains undefined', async function() {
+      const user = await User.upsertWithWhere(
+        {role: undefined, order: 6},
+        {vip: false},
+      );
+      assert.strictEqual(user.order, 6);
     });
 
-    it('should ignore if count where contains undefined', function(done) {
-      User.count({role: undefined}, function(err, count) {
-        should.not.exist(err);
-        count.should.eql(6);
-        done();
-      });
+    it('should ignore if count where contains undefined', async function() {
+      const count = await User.count({role: undefined});
+      assert.strictEqual(count, 6);
     });
 
-    it('should ignore if destroyAll where contains undefined', function(done) {
-      User.destroyAll({role: undefined}, function(err, count) {
-        should.not.exist(err);
-        count.count.should.eql(6);
-        done();
-      });
+    it('should ignore if destroyAll where contains undefined', async function() {
+      const count = await User.destroyAll({role: undefined});
+      assert.strictEqual(count.count, 6);
     });
   });
 });
 
-function seed(User, done) {
+async function seed(User) {
   const beatles = [
     {
       seq: 0,
@@ -285,13 +253,6 @@ function seed(User, done) {
     {seq: 5, name: 'Stuart Sutcliffe', role: null, order: 3, vip: true},
   ];
 
-  async.series(
-    [
-      User.destroyAll.bind(User),
-      function(cb) {
-        async.each(beatles, User.create.bind(User), cb);
-      },
-    ],
-    done,
-  );
+  await User.destroyAll();
+  await Promise.all(beatles.map((beatle) => User.create(beatle)));
 }

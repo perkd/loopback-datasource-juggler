@@ -5,7 +5,8 @@
 
 'use strict';
 
-const should = require('./init.js');
+const {describe, it, beforeEach} = require('node:test');
+const assert = require('node:assert/strict');
 const DataSource = require('../lib/datasource').DataSource;
 const {ModelRegistry} = require('../lib/model-registry');
 
@@ -31,13 +32,13 @@ describe('Memory Leak Fixes - v5.2.5', function() {
         dataSources.push(ds);
 
         // Access models to trigger proxy creation
-        Object.keys(ds.models).should.containEql('User');
+        assert.ok(Object.keys(ds.models).includes('User'));
       }
 
       const afterCreationStats = ModelRegistry.getStats();
 
       // Should only have 1 tenant registry (reused for identical configs)
-      afterCreationStats.tenantRegistries.should.equal(1);
+      assert.equal(afterCreationStats.tenantRegistries, 1);
 
       // Cleanup
       dataSources.forEach(ds => ds.disconnect());
@@ -60,7 +61,7 @@ describe('Memory Leak Fixes - v5.2.5', function() {
       const stats = ModelRegistry.getStats();
 
       // Should have 3 tenant registries (different configs)
-      stats.tenantRegistries.should.equal(3);
+      assert.equal(stats.tenantRegistries, 3);
 
       // Cleanup
       dataSources.forEach(ds => ds.disconnect());
@@ -68,29 +69,27 @@ describe('Memory Leak Fixes - v5.2.5', function() {
   });
 
   describe('DataSource Disconnect Cleanup', function() {
-    it('should clean up ModelRegistryProxy on disconnect', function(done) {
+    it('should clean up ModelRegistryProxy on disconnect', async function() {
       const ds = new DataSource('memory', {name: 'testdb'});
       const User = ds.define('User', {name: 'string'});
 
       // Access models to create proxy
       const models = ds.models;
-      Object.keys(models).should.containEql('User');
+      assert.ok(Object.keys(models).includes('User'));
 
       // Verify proxy exists
-      ds.should.have.property('_modelRegistryProxy');
+      assert.ok('_modelRegistryProxy' in ds);
 
       // Disconnect should clean up proxy
       ds.disconnect();
 
       // Wait for async cleanup
-      setTimeout(() => {
-        // Proxy should be cleaned up
-        ('_modelRegistryProxy' in ds).should.be.false();
-        done();
-      }, 10);
+      await delay(10);
+      // Proxy should be cleaned up
+      assert.equal('_modelRegistryProxy' in ds, false);
     });
 
-    it('should clean up tenant registry with reference counting', function(done) {
+    it('should clean up tenant registry with reference counting', async function() {
       const ds1 = new DataSource('memory', {name: 'shared'});
       const ds2 = new DataSource('memory', {name: 'shared'});
 
@@ -99,31 +98,28 @@ describe('Memory Leak Fixes - v5.2.5', function() {
 
       // Both should use same tenant registry
       const stats1 = ModelRegistry.getStats();
-      stats1.tenantRegistries.should.equal(1);
+      assert.equal(stats1.tenantRegistries, 1);
 
       // Disconnect first DataSource
       ds1.disconnect();
 
-      setTimeout(() => {
-        // Registry should still exist (ds2 still using it)
-        const stats2 = ModelRegistry.getStats();
-        stats2.tenantRegistries.should.equal(1);
+      await delay(10);
+      // Registry should still exist (ds2 still using it)
+      const stats2 = ModelRegistry.getStats();
+      assert.equal(stats2.tenantRegistries, 1);
 
-        // Disconnect second DataSource
-        ds2.disconnect();
+      // Disconnect second DataSource
+      ds2.disconnect();
 
-        setTimeout(() => {
-          // Registry should be cleaned up now
-          const stats3 = ModelRegistry.getStats();
-          stats3.tenantRegistries.should.equal(0);
-          done();
-        }, 10);
-      }, 10);
+      await delay(10);
+      // Registry should be cleaned up now
+      const stats3 = ModelRegistry.getStats();
+      assert.equal(stats3.tenantRegistries, 0);
     });
   });
 
   describe('Memory Leak Prevention', function() {
-    it('should not accumulate tenant registries during rapid switching', function(done) {
+    it('should not accumulate tenant registries during rapid switching', async function() {
       const initialStats = ModelRegistry.getStats();
 
       // Simulate high-frequency tenant switching with same config
@@ -135,23 +131,21 @@ describe('Memory Leak Fixes - v5.2.5', function() {
         const User = ds.define('User', {name: 'string'});
 
         // Access models to trigger proxy creation
-        Object.keys(ds.models).should.containEql('User');
+        assert.ok(Object.keys(ds.models).includes('User'));
 
         // Disconnect immediately
         ds.disconnect();
       }
 
       // Wait for all async cleanups to complete
-      setTimeout(() => {
-        const finalStats = ModelRegistry.getStats();
+      await delay(100);
+      const finalStats = ModelRegistry.getStats();
 
-        // Should not accumulate registries (all cleaned up)
-        finalStats.tenantRegistries.should.equal(0);
-        done();
-      }, 100);
+      // Should not accumulate registries (all cleaned up)
+      assert.equal(finalStats.tenantRegistries, 0);
     });
 
-    it('should handle mixed configuration scenarios', function(done) {
+    it('should handle mixed configuration scenarios', async function() {
       const dataSources = [];
 
       // Create mix of shared and unique configurations
@@ -168,24 +162,22 @@ describe('Memory Leak Fixes - v5.2.5', function() {
       const stats = ModelRegistry.getStats();
 
       // Should have reasonable number of registries (not 20)
-      stats.tenantRegistries.should.be.lessThan(20);
-      stats.tenantRegistries.should.be.greaterThan(0);
+      assert.ok(stats.tenantRegistries < 20);
+      assert.ok(stats.tenantRegistries > 0);
 
       // Cleanup all
       dataSources.forEach(ds => ds.disconnect());
 
       // Wait for all async cleanups
-      setTimeout(() => {
-        // All should be cleaned up
-        const finalStats = ModelRegistry.getStats();
-        finalStats.tenantRegistries.should.equal(0);
-        done();
-      }, 100);
+      await delay(100);
+      // All should be cleaned up
+      const finalStats = ModelRegistry.getStats();
+      assert.equal(finalStats.tenantRegistries, 0);
     });
   });
 
   describe('Reference Counting', function() {
-    it('should track DataSource references correctly', function(done) {
+    it('should track DataSource references correctly', async function() {
       const config = {name: 'reftest', host: 'localhost'};
 
       // Create first DataSource
@@ -193,7 +185,7 @@ describe('Memory Leak Fixes - v5.2.5', function() {
       const User1 = ds1.define('User', {name: 'string'});
 
       let stats = ModelRegistry.getStats();
-      stats.tenantRegistries.should.equal(1);
+      assert.equal(stats.tenantRegistries, 1);
 
       // Create second DataSource with same config
       const ds2 = new DataSource('memory', config);
@@ -201,24 +193,21 @@ describe('Memory Leak Fixes - v5.2.5', function() {
 
       // Should still be 1 registry (shared)
       stats = ModelRegistry.getStats();
-      stats.tenantRegistries.should.equal(1);
+      assert.equal(stats.tenantRegistries, 1);
 
       // Disconnect first - registry should remain
       ds1.disconnect();
 
-      setTimeout(() => {
-        stats = ModelRegistry.getStats();
-        stats.tenantRegistries.should.equal(1);
+      await delay(10);
+      stats = ModelRegistry.getStats();
+      assert.equal(stats.tenantRegistries, 1);
 
-        // Disconnect second - registry should be cleaned up
-        ds2.disconnect();
+      // Disconnect second - registry should be cleaned up
+      ds2.disconnect();
 
-        setTimeout(() => {
-          stats = ModelRegistry.getStats();
-          stats.tenantRegistries.should.equal(0);
-          done();
-        }, 10);
-      }, 10);
+      await delay(10);
+      stats = ModelRegistry.getStats();
+      assert.equal(stats.tenantRegistries, 0);
     });
   });
 
@@ -234,7 +223,7 @@ describe('Memory Leak Fixes - v5.2.5', function() {
       };
 
       // Disconnect should not throw
-      (() => ds.disconnect()).should.not.throw();
+      assert.doesNotThrow(() => ds.disconnect());
 
       // Restore original method
       ModelRegistry.cleanupTenant = originalCleanup;
@@ -242,7 +231,7 @@ describe('Memory Leak Fixes - v5.2.5', function() {
   });
 
   describe('Performance', function() {
-    it('should maintain reasonable performance with many DataSources', function(done) {
+    it('should maintain reasonable performance with many DataSources', async function() {
       const startTime = Date.now();
       const dataSources = [];
 
@@ -258,7 +247,7 @@ describe('Memory Leak Fixes - v5.2.5', function() {
       const creationTime = Date.now() - startTime;
 
       // Should complete in reasonable time (less than 1 second)
-      creationTime.should.be.lessThan(1000);
+      assert.ok(creationTime < 1000);
 
       // Cleanup
       const cleanupStart = Date.now();
@@ -266,15 +255,17 @@ describe('Memory Leak Fixes - v5.2.5', function() {
       const cleanupTime = Date.now() - cleanupStart;
 
       // Cleanup should also be fast
-      cleanupTime.should.be.lessThan(500);
+      assert.ok(cleanupTime < 500);
 
       // Wait for all async cleanups
-      setTimeout(() => {
-        // All should be cleaned up
-        const finalStats = ModelRegistry.getStats();
-        finalStats.tenantRegistries.should.equal(0);
-        done();
-      }, 200);
+      await delay(200);
+      // All should be cleaned up
+      const finalStats = ModelRegistry.getStats();
+      assert.equal(finalStats.tenantRegistries, 0);
     });
   });
 });
+
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}

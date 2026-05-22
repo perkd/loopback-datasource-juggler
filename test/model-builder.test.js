@@ -5,12 +5,20 @@
 
 'use strict';
 
-const should = require('./init.js');
-
+const {describe, it, before, beforeEach, after, afterEach} = require('node:test');
+const assert = require('node:assert/strict');
 const juggler = require('../');
 const ModelBuilder = juggler.ModelBuilder;
 const {StrongGlobalize} = require('strong-globalize');
 const parentRefHelper = require('./helpers/setup-parent-ref');
+
+global.beforeEach = function beforeEachCompat(nameOrFn, maybeFn) {
+  return beforeEach(typeof nameOrFn === 'function' ? nameOrFn : maybeFn);
+};
+
+global.afterEach = function afterEachCompat(nameOrFn, maybeFn) {
+  return afterEach(typeof nameOrFn === 'function' ? nameOrFn : maybeFn);
+};
 
 describe('ModelBuilder', () => {
   describe('define()', () => {
@@ -20,33 +28,33 @@ describe('ModelBuilder', () => {
 
     it('sets correct "modelName" property', () => {
       const MyModel = builder.define('MyModel');
-      MyModel.should.have.property('modelName', 'MyModel');
+      assert.equal(MyModel.modelName, 'MyModel');
     });
 
     it('sets correct "name" property on model constructor', () => {
       const MyModel = builder.define('MyModel');
-      MyModel.should.have.property('name', 'MyModel');
+      assert.equal(MyModel.name, 'MyModel');
     });
 
     describe('model class name sanitization', () => {
       it('converts "-" to "_"', () => {
         const MyModel = builder.define('Grand-child');
-        MyModel.should.have.property('name', 'Grand_child');
+        assert.equal(MyModel.name, 'Grand_child');
       });
 
       it('converts "." to "_"', () => {
         const MyModel = builder.define('Grand.child');
-        MyModel.should.have.property('name', 'Grand_child');
+        assert.equal(MyModel.name, 'Grand_child');
       });
 
       it('converts ":" to "_"', () => {
         const MyModel = builder.define('local:User');
-        MyModel.should.have.property('name', 'local_User');
+        assert.equal(MyModel.name, 'local_User');
       });
 
       it('falls back to legacy "ModelConstructor" in other cases', () => {
         const MyModel = builder.define('Grand\tchild');
-        MyModel.should.have.property('name', 'ModelConstructor');
+        assert.equal(MyModel.name, 'ModelConstructor');
       });
     });
 
@@ -59,7 +67,7 @@ describe('ModelBuilder', () => {
             default: null,
           },
         });
-        should.equal(User.getPropertyType('role'), 'ModelConstructor');
+        assert.equal(User.getPropertyType('role'), 'ModelConstructor');
       });
     });
 
@@ -75,7 +83,7 @@ describe('ModelBuilder', () => {
           },
         });
         User.registerProperty('role');
-        should.equal(User.getPropertyType('role'), 'Role');
+        assert.equal(User.getPropertyType('role'), 'Role');
       });
     });
 
@@ -83,14 +91,14 @@ describe('ModelBuilder', () => {
       let Address, Person;
       const originalWarn = StrongGlobalize.prototype.warn;
       parentRefHelper(() => builder);
-      before('create stub for warning check', () => {
+      before(() => {
         StrongGlobalize.prototype.warn = function gWarnWrapper(...args) {
           StrongGlobalize.prototype.warn.called++;
           return originalWarn.apply(this, args);
         };
         StrongGlobalize.prototype.warn.called = 0;
       });
-      beforeEach('Define models', () => {
+      beforeEach(() => {
         Address = builder.define('Address', {
           street: {type: 'string'},
           number: {type: 'number'},
@@ -101,7 +109,7 @@ describe('ModelBuilder', () => {
           other: {type: 'object'},
         });
       });
-      after('restore warning stub', () => {
+      after(() => {
         StrongGlobalize.prototype.warn = originalWarn;
       });
       it('should properly add the __parent relationship when instantiating parent model', () => {
@@ -109,21 +117,21 @@ describe('ModelBuilder', () => {
           name: 'Mitsos',
           address: {street: 'kopria', number: 11},
         });
-        person.should.have.propertyByPath('address', '__parent').which.equals(person);
+        assert.equal(person.address.__parent, person);
       });
       it('should add _parent property when setting embedded model after instantiation', () => {
         const person = new Person({
           name: 'Mitsos',
         });
         person.address = {street: 'kopria', number: 11};
-        person.should.have.propertyByPath('address', '__parent').which.equals(person);
+        assert.equal(person.address.__parent, person);
       });
       it('should handle nullish embedded property values', () => {
         const person = new Person({
           name: 'Mitsos',
           address: null,
         });
-        person.should.have.property('address').which.equals(null);
+        assert.equal(person.address, null);
       });
       it('should change __parent reference and WARN when moving a child instance to an other parent', () => {
         const person1 = new Person({
@@ -131,22 +139,23 @@ describe('ModelBuilder', () => {
           address: {street: 'kopria', number: 11},
         });
         const {address} = person1;
-        address.should.be.instanceof(Address).and.have.property('__parent').which.equals(person1);
-        StrongGlobalize.prototype.warn.should.have.property('called', 0); // check that no warn yet
+        assert.ok(address instanceof Address);
+        assert.equal(address.__parent, person1);
+        assert.equal(StrongGlobalize.prototype.warn.called, 0); // check that no warn yet
         const person2 = new Person({
           name: 'Allos',
           address,
         });
-        address.should.have.property('__parent').which.equals(person2);
-        StrongGlobalize.prototype.warn.should.have.property('called', 1); // check we had a warning
+        assert.equal(address.__parent, person2);
+        assert.equal(StrongGlobalize.prototype.warn.called, 1); // check we had a warning
       });
       it('should NOT provide the __parent property to any serialization of the instance', () => {
         const person = new Person({
           name: 'Mitsos',
           address: {street: 'kopria', number: 11},
         });
-        person.toJSON().should.not.have.propertyByPath('address', '__parent');
-        person.toObject().should.not.have.propertyByPath('address', '__parent');
+        assert.equal(person.toJSON().address.__parent, undefined);
+        assert.equal(person.toObject().address.__parent, undefined);
       });
       it('should NOT provide __parent property in plain object properties', () => {
         const person = new Person({
@@ -154,14 +163,14 @@ describe('ModelBuilder', () => {
           address: {street: 'kopria', number: 11},
           other: {some: 'object'},
         });
-        person.should.have.property('other').which.eql({some: 'object'}).and.not.has
-          .property('__parent');
+        assert.deepEqual(person.other, {some: 'object'});
+        assert.equal(person.other.__parent, undefined);
       });
     });
 
     describe('Model with properties as list of embedded models', () => {
       let Person, Address;
-      beforeEach('Define models', () => {
+      beforeEach(() => {
         Address = builder.define('Address', {
           street: {type: 'string'},
           number: {type: 'number'},
@@ -179,8 +188,9 @@ describe('ModelBuilder', () => {
             number: 100,
           }],
         });
-        person.should.have.property('addresses').which.has.property('parent')
-          .which.is.instanceof(Person).and.equals(person);
+        assert.ok(person.addresses);
+        assert.ok(person.addresses.parent instanceof Person);
+        assert.equal(person.addresses.parent, person);
       });
       it('should pass the container model instance as parent to the list, when assigning to ' +
         'the list property', () => {
@@ -191,8 +201,9 @@ describe('ModelBuilder', () => {
           street: 'kapou oraia',
           number: 100,
         }];
-        person.should.have.property('addresses').which.has.property('parent')
-          .which.is.instanceof(Person).and.equals(person);
+        assert.ok(person.addresses);
+        assert.ok(person.addresses.parent instanceof Person);
+        assert.equal(person.addresses.parent, person);
       });
     });
 

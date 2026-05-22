@@ -4,8 +4,9 @@
 // License text available at https://opensource.org/licenses/MIT
 
 'use strict';
-const assert = require('assert');
-const should = require('should');
+
+const assert = require('node:assert/strict');
+const {describe, it} = require('node:test');
 
 const includeUtils = require('../lib/include_utils');
 
@@ -17,8 +18,8 @@ describe('include_util', function() {
         {id: 22, letter: 'B'},
       ];
       const result = includeUtils.buildOneToOneIdentityMapWithOrigKeys(objs, 'id');
-      result.get(11).should.be.ok;
-      result.get(22).should.be.ok;
+      assert.ok(result.get(11));
+      assert.ok(result.get(22));
     });
 
     it('should report errors if id is missing', function() {
@@ -29,7 +30,7 @@ describe('include_util', function() {
       function build() {
         includeUtils.buildOneToOneIdentityMapWithOrigKeys(objs, 'id');
       }
-      build.should.throw(/ID property "id" is missing/);
+      assert.throws(build, /ID property "id" is missing/);
     });
 
     it('should overwrite keys in case of collision', function() {
@@ -41,11 +42,11 @@ describe('include_util', function() {
       ];
 
       const result = includeUtils.buildOneToOneIdentityMapWithOrigKeys(objs, 'id');
-      result.getKeys().should.containEql(11);
-      result.getKeys().should.containEql(22);
-      result.getKeys().should.containEql(33);
-      result.get(11)['letter'].should.equal('HA!');
-      result.get(33)['letter'].should.equal('C');
+      assert.ok(result.getKeys().includes(11));
+      assert.ok(result.getKeys().includes(22));
+      assert.ok(result.getKeys().includes(33));
+      assert.strictEqual(result.get(11).letter, 'HA!');
+      assert.strictEqual(result.get(33).letter, 'C');
     });
 
     it('should return an object with no additional keys', function() {
@@ -54,7 +55,7 @@ describe('include_util', function() {
         {id: 22, letter: 'B'},
       ];
       const result = includeUtils.buildOneToOneIdentityMapWithOrigKeys(objs, 'id');
-      result.getKeys().should.eql([11, 22]); // no additional properties
+      assert.deepStrictEqual(result.getKeys(), [11, 22]); // no additional properties
     });
   });
 
@@ -65,8 +66,8 @@ describe('include_util', function() {
         {id: 22, letter: 'B'},
       ];
       const result = includeUtils.buildOneToManyIdentityMapWithOrigKeys(objs, 'id');
-      result.exist(11).should.be.true;
-      result.exist(22).should.be.true;
+      assert.strictEqual(result.exist(11), true);
+      assert.strictEqual(result.exist(22), true);
     });
 
     it('should report errors if id is missing', function() {
@@ -77,7 +78,7 @@ describe('include_util', function() {
       function build() {
         includeUtils.buildOneToManyIdentityMapWithOrigKeys(objs, 'id');
       }
-      build.should.throw(/ID property "id" is missing/);
+      assert.throws(build, /ID property "id" is missing/);
     });
 
     it('should collect keys in case of collision', function() {
@@ -89,9 +90,9 @@ describe('include_util', function() {
       ];
 
       const result = includeUtils.buildOneToManyIdentityMapWithOrigKeys(objs, 'fk_id');
-      result.get(11)[0]['letter'].should.equal('A');
-      result.get(11)[1]['letter'].should.equal('HA!');
-      result.get(33)[0]['letter'].should.equal('C');
+      assert.strictEqual(result.get(11)[0].letter, 'A');
+      assert.strictEqual(result.get(11)[1].letter, 'HA!');
+      assert.strictEqual(result.get(33)[0].letter, 'C');
     });
   });
 });
@@ -102,9 +103,9 @@ describe('KVMap', function() {
     map.set('name', 'Alex');
     map.set('gender', true);
     map.set('age', 25);
-    map.get('name').should.be.equal('Alex');
-    map.get('gender').should.be.equal(true);
-    map.get('age').should.be.equal(25);
+    assert.strictEqual(map.get('name'), 'Alex');
+    assert.strictEqual(map.get('gender'), true);
+    assert.strictEqual(map.get('age'), 25);
   });
   it('should allow to set and get value with arbitrary key type', function() {
     const map = new includeUtils.KVMap();
@@ -112,25 +113,25 @@ describe('KVMap', function() {
     map.set(true, 'male');
     map.set(false, false);
     map.set({isTrue: 'yes'}, 25);
-    map.get('name').should.be.equal('Alex');
-    map.get(true).should.be.equal('male');
-    map.get(false).should.be.equal(false);
-    map.get({isTrue: 'yes'}).should.be.equal(25);
+    assert.strictEqual(map.get('name'), 'Alex');
+    assert.strictEqual(map.get(true), 'male');
+    assert.strictEqual(map.get(false), false);
+    assert.strictEqual(map.get({isTrue: 'yes'}), 25);
   });
   it('should not allow to get values with [] operator', function() {
     const map = new includeUtils.KVMap();
     map.set('name', 'Alex');
-    (map['name'] === undefined).should.be.equal(true);
+    assert.strictEqual(map.name, undefined);
   });
   it('should provide .exist() method for checking if key presented', function() {
     const map = new includeUtils.KVMap();
     map.set('one', 1);
     map.set(2, 'two');
     map.set(true, 'true');
-    map.exist('one').should.be.true;
-    map.exist(2).should.be.true;
-    map.exist(true).should.be.true;
-    map.exist('two').should.be.false;
+    assert.strictEqual(map.exist('one'), true);
+    assert.strictEqual(map.exist(2), true);
+    assert.strictEqual(map.exist(true), true);
+    assert.strictEqual(map.exist('two'), false);
   });
   it('should return array of original keys with .getKeys()', function() {
     const map = new includeUtils.KVMap();
@@ -138,19 +139,19 @@ describe('KVMap', function() {
     map.set(2, 'two');
     map.set(true, 'true');
     const keys = map.getKeys();
-    keys.should.containEql('one');
-    keys.should.containEql(2);
-    keys.should.containEql(true);
+    assert.ok(keys.includes('one'));
+    assert.ok(keys.includes(2));
+    assert.ok(keys.includes(true));
   });
   it('should allow to store and fetch arrays', function() {
     const map = new includeUtils.KVMap();
     map.set(1, [1, 2, 3]);
     map.set(2, [2, 3, 4]);
     const valueOne = map.get(1);
-    valueOne.should.be.eql([1, 2, 3]);
+    assert.deepStrictEqual(valueOne, [1, 2, 3]);
     valueOne.push(99);
     map.set(1, valueOne);
     const valueOneUpdated = map.get(1);
-    valueOneUpdated.should.be.eql([1, 2, 3, 99]);
+    assert.deepStrictEqual(valueOneUpdated, [1, 2, 3, 99]);
   });
 });

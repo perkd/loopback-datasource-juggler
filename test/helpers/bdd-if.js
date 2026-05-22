@@ -6,12 +6,13 @@
 'use strict';
 
 const fmt = require('util').format;
+const {describe, it} = require('node:test');
 
 exports.describeIf = function describeIf(cond, name, fn) {
   if (cond)
     describe(name, fn);
   else {
-    describe.skip(fmt('[UNSUPPORTED] - %s', name), fn);
+    describe(fmt('[UNSUPPORTED] - %s', name), {skip: true}, fn);
   }
 };
 
@@ -19,6 +20,6 @@ exports.itIf = function itIf(cond, name, fn) {
   if (cond)
     it(name, fn);
   else {
-    it.skip(fmt('[UNSUPPORTED] - %s', name), fn);
+    it(fmt('[UNSUPPORTED] - %s', name), {skip: true}, fn);
   }
 };

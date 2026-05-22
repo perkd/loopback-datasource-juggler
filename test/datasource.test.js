@@ -5,7 +5,8 @@
 
 'use strict';
 
-const should = require('./init.js');
+const {describe, it, beforeEach} = require('node:test');
+const assert = require('node:assert/strict');
 const DataSource = require('../lib/datasource.js').DataSource;
 
 describe('DataSource', function() {
@@ -15,7 +16,7 @@ describe('DataSource', function() {
     const ds = new DataSource(config);
     ds.settings.extra = true;
 
-    config.should.eql({connector: 'memory'});
+    assert.deepEqual(config, {connector: 'memory'});
   });
 
   it('reports helpful error when connector init throws', function() {
@@ -26,33 +27,33 @@ describe('DataSource', function() {
       },
     };
 
-    (function() {
+    assert.throws(() => {
       // this is what LoopBack does
       return new DataSource({
         name: 'dsname',
         connector: throwingConnector,
       });
-    }).should.throw(/loopback-connector-throwing/);
+    }, /loopback-connector-throwing/);
   });
 
   it('reports helpful error when connector init via short name throws', function() {
-    (function() {
+    assert.throws(() => {
       // this is what LoopBack does
       return new DataSource({
         name: 'dsname',
         connector: 'throwing',
       });
-    }).should.throw(/expected test error/);
+    }, /expected test error/);
   });
 
   it('reports helpful error when connector init via long name throws', function() {
-    (function() {
+    assert.throws(() => {
       // this is what LoopBack does
       return new DataSource({
         name: 'dsname',
         connector: 'loopback-connector-throwing',
       });
-    }).should.throw(/expected test error/);
+    }, /expected test error/);
   });
 
   /**
@@ -63,7 +64,7 @@ describe('DataSource', function() {
       connector: 'memory',
     });
 
-    dataSource.name.should.equal('myDataSource');
+    assert.equal(dataSource.name, 'myDataSource');
   });
 
   /**
@@ -75,7 +76,7 @@ describe('DataSource', function() {
       connector: 'memory',
     });
 
-    dataSource.name.should.equal('myDataSource');
+    assert.equal(dataSource.name, 'myDataSource');
   });
 
   /**
@@ -87,7 +88,7 @@ describe('DataSource', function() {
       connector: 'memory',
     });
 
-    dataSource.name.should.equal('defaultDataSource');
+    assert.equal(dataSource.name, 'defaultDataSource');
   });
 
   /**
@@ -99,7 +100,7 @@ describe('DataSource', function() {
       connector: 'memory',
     });
 
-    dataSource.name.should.equal('defaultDataSource');
+    assert.equal(dataSource.name, 'defaultDataSource');
   });
 
   /**
@@ -110,7 +111,7 @@ describe('DataSource', function() {
       connector: 'memory',
     });
 
-    dataSource.name.should.equal('memory');
+    assert.equal(dataSource.name, 'memory');
   });
 
   /**
@@ -126,8 +127,8 @@ describe('DataSource', function() {
     };
     const dataSource = new DataSource(mockConnector);
 
-    dataSource.name.should.equal('loopback-connector-mock');
-    dataSource.connector.should.equal(mockConnector);
+    assert.equal(dataSource.name, 'loopback-connector-mock');
+    assert.equal(dataSource.connector, mockConnector);
   });
 
   /**
@@ -143,8 +144,8 @@ describe('DataSource', function() {
     };
     const dataSource = new DataSource('myDataSource', mockConnector);
 
-    dataSource.name.should.equal('myDataSource');
-    dataSource.connector.should.equal(mockConnector);
+    assert.equal(dataSource.name, 'myDataSource');
+    assert.equal(dataSource.connector, mockConnector);
   });
 
   /**
@@ -160,11 +161,11 @@ describe('DataSource', function() {
     };
     const dataSource = new DataSource(mockConnector, {name: 'myDataSource'});
 
-    dataSource.name.should.equal('myDataSource');
-    dataSource.connector.should.equal(mockConnector);
+    assert.equal(dataSource.name, 'myDataSource');
+    assert.equal(dataSource.connector, mockConnector);
   });
 
-  it('should set states correctly with eager connect', function(done) {
+  it('should set states correctly with eager connect', async function() {
     const mockConnector = {
       name: 'loopback-connector-mock',
       initialize: function(ds, cb) {
@@ -181,45 +182,55 @@ describe('DataSource', function() {
     const dataSource = new DataSource(mockConnector);
     // DataSource is instantiated
     // connected: false, connecting: false, initialized: false
-    dataSource.connected.should.be.false();
-    dataSource.connecting.should.be.false();
-    dataSource.initialized.should.be.false();
+    assert.equal(dataSource.connected, false);
+    assert.equal(dataSource.connecting, false);
+    assert.equal(dataSource.initialized, false);
 
-    dataSource.on('initialized', function() {
-      // DataSource is initialized with lazyConnect
-      // connected: false, connecting: false, initialized: true
-      dataSource.connected.should.be.false();
-      dataSource.connecting.should.be.false();
-      dataSource.initialized.should.be.true();
+    let initializedState;
+    let connectedState;
+    const initialized = onceEvent(dataSource, 'initialized', () => {
+      initializedState = {
+        connected: dataSource.connected,
+        connecting: dataSource.connecting,
+        initialized: dataSource.initialized,
+      };
     });
 
-    dataSource.on('connected', function() {
-      // DataSource is now connected
-      // connected: true, connecting: false
-      dataSource.connected.should.be.true();
-      dataSource.connecting.should.be.false();
+    const connected = onceEvent(dataSource, 'connected', () => {
+      connectedState = {
+        connected: dataSource.connected,
+        connecting: dataSource.connecting,
+      };
     });
 
     // Call connect() in next tick so that we'll receive initialized event
     // first
-    process.nextTick(function() {
-      // At this point, the datasource is already connected by
-      // connector's (mockConnector) initialize function
-      dataSource.connect(function() {
-        // DataSource is now connected
-        // connected: true, connecting: false
-        dataSource.connected.should.be.true();
-        dataSource.connecting.should.be.false();
-        done();
-      });
-      // As the datasource is already connected, no connecting will happen
-      // connected: true, connecting: false
-      dataSource.connected.should.be.true();
-      dataSource.connecting.should.be.false();
+    await nextTick();
+    // At this point, the datasource is already connected by
+    // connector's (mockConnector) initialize function
+    const connectPromise = connectDataSource(dataSource);
+    // As the datasource is already connected, no connecting will happen
+    // connected: true, connecting: false
+    assert.equal(dataSource.connected, true);
+    assert.equal(dataSource.connecting, false);
+    await connectPromise;
+    // DataSource is now connected
+    // connected: true, connecting: false
+    assert.equal(dataSource.connected, true);
+    assert.equal(dataSource.connecting, false);
+    await Promise.all([initialized, connected]);
+    assert.deepEqual(initializedState, {
+      connected: false,
+      connecting: false,
+      initialized: true,
+    });
+    assert.deepEqual(connectedState, {
+      connected: true,
+      connecting: false,
     });
   });
 
-  it('should set states correctly with deferred connect', function(done) {
+  it('should set states correctly with deferred connect', async function() {
     const mockConnector = {
       name: 'loopback-connector-mock',
       initialize: function(ds, cb) {
@@ -239,43 +250,53 @@ describe('DataSource', function() {
     const dataSource = new DataSource(mockConnector);
     // DataSource is instantiated
     // connected: false, connecting: false, initialized: false
-    dataSource.connected.should.be.false();
-    dataSource.connecting.should.be.false();
-    dataSource.initialized.should.be.false();
+    assert.equal(dataSource.connected, false);
+    assert.equal(dataSource.connecting, false);
+    assert.equal(dataSource.initialized, false);
 
-    dataSource.on('initialized', function() {
-      // DataSource is initialized with lazyConnect
-      // connected: false, connecting: false, initialized: true
-      dataSource.connected.should.be.false();
-      dataSource.connecting.should.be.false();
-      dataSource.initialized.should.be.true();
+    let initializedState;
+    let connectedState;
+    const initialized = onceEvent(dataSource, 'initialized', () => {
+      initializedState = {
+        connected: dataSource.connected,
+        connecting: dataSource.connecting,
+        initialized: dataSource.initialized,
+      };
     });
 
-    dataSource.on('connected', function() {
-      // DataSource is now connected
-      // connected: true, connecting: false
-      dataSource.connected.should.be.true();
-      dataSource.connecting.should.be.false();
+    const connected = onceEvent(dataSource, 'connected', () => {
+      connectedState = {
+        connected: dataSource.connected,
+        connecting: dataSource.connecting,
+      };
     });
 
     // Call connect() in next tick so that we'll receive initialized event
     // first
-    process.nextTick(function() {
-      dataSource.connect(function() {
-        // DataSource is now connected
-        // connected: true, connecting: false
-        dataSource.connected.should.be.true();
-        dataSource.connecting.should.be.false();
-        done();
-      });
-      // As the datasource is not connected, connecting will happen
-      // connected: false, connecting: true
-      dataSource.connected.should.be.false();
-      dataSource.connecting.should.be.true();
+    await nextTick();
+    const connectPromise = connectDataSource(dataSource);
+    // As the datasource is not connected, connecting will happen
+    // connected: false, connecting: true
+    assert.equal(dataSource.connected, false);
+    assert.equal(dataSource.connecting, true);
+    await connectPromise;
+    // DataSource is now connected
+    // connected: true, connecting: false
+    assert.equal(dataSource.connected, true);
+    assert.equal(dataSource.connecting, false);
+    await Promise.all([initialized, connected]);
+    assert.deepEqual(initializedState, {
+      connected: false,
+      connecting: false,
+      initialized: true,
+    });
+    assert.deepEqual(connectedState, {
+      connected: true,
+      connecting: false,
     });
   });
 
-  it('should set states correctly with lazyConnect = true', function(done) {
+  it('should set states correctly with lazyConnect = true', async function() {
     const mockConnector = {
       name: 'loopback-connector-mock',
       initialize: function(ds, cb) {
@@ -294,43 +315,53 @@ describe('DataSource', function() {
     const dataSource = new DataSource(mockConnector, {lazyConnect: true});
     // DataSource is instantiated
     // connected: false, connecting: false, initialized: false
-    dataSource.connected.should.be.false();
-    dataSource.connecting.should.be.false();
-    dataSource.initialized.should.be.false();
+    assert.equal(dataSource.connected, false);
+    assert.equal(dataSource.connecting, false);
+    assert.equal(dataSource.initialized, false);
 
-    dataSource.on('initialized', function() {
-      // DataSource is initialized with lazyConnect
-      // connected: false, connecting: false, initialized: true
-      dataSource.connected.should.be.false();
-      dataSource.connecting.should.be.false();
-      dataSource.initialized.should.be.true();
+    let initializedState;
+    let connectedState;
+    const initialized = onceEvent(dataSource, 'initialized', () => {
+      initializedState = {
+        connected: dataSource.connected,
+        connecting: dataSource.connecting,
+        initialized: dataSource.initialized,
+      };
     });
 
-    dataSource.on('connected', function() {
-      // DataSource is now connected
-      // connected: true, connecting: false
-      dataSource.connected.should.be.true();
-      dataSource.connecting.should.be.false();
+    const connected = onceEvent(dataSource, 'connected', () => {
+      connectedState = {
+        connected: dataSource.connected,
+        connecting: dataSource.connecting,
+      };
     });
 
     // Call connect() in next tick so that we'll receive initialized event
     // first
-    process.nextTick(function() {
-      dataSource.connect(function() {
-        // DataSource is now connected
-        // connected: true, connecting: false
-        dataSource.connected.should.be.true();
-        dataSource.connecting.should.be.false();
-        done();
-      });
-      // DataSource is now connecting
-      // connected: false, connecting: true
-      dataSource.connected.should.be.false();
-      dataSource.connecting.should.be.true();
+    await nextTick();
+    const connectPromise = connectDataSource(dataSource);
+    // DataSource is now connecting
+    // connected: false, connecting: true
+    assert.equal(dataSource.connected, false);
+    assert.equal(dataSource.connecting, true);
+    await connectPromise;
+    // DataSource is now connected
+    // connected: true, connecting: false
+    assert.equal(dataSource.connected, true);
+    assert.equal(dataSource.connecting, false);
+    await Promise.all([initialized, connected]);
+    assert.deepEqual(initializedState, {
+      connected: false,
+      connecting: false,
+      initialized: true,
+    });
+    assert.deepEqual(connectedState, {
+      connected: true,
+      connecting: false,
     });
   });
 
-  it('provides stop() API calling disconnect', function(done) {
+  it('provides stop() API calling disconnect', async function() {
     const mockConnector = {
       name: 'loopback-connector-mock',
       initialize: function(ds, cb) {
@@ -342,17 +373,14 @@ describe('DataSource', function() {
     };
 
     const dataSource = new DataSource(mockConnector);
-    dataSource.on('connected', function() {
-      // DataSource is now connected
-      // connected: true, connecting: false
-      dataSource.connected.should.be.true();
-      dataSource.connecting.should.be.false();
+    await onceEvent(dataSource, 'connected');
+    // DataSource is now connected
+    // connected: true, connecting: false
+    assert.equal(dataSource.connected, true);
+    assert.equal(dataSource.connecting, false);
 
-      dataSource.stop(() => {
-        dataSource.connected.should.be.false();
-        done();
-      });
-    });
+    await stopDataSource(dataSource);
+    assert.equal(dataSource.connected, false);
   });
 
   describe('deleteModelByName()', () => {
@@ -360,30 +388,24 @@ describe('DataSource', function() {
       const ds = new DataSource('ds', {connector: 'memory'});
 
       ds.createModel('TestModel');
-      Object.keys(ds.modelBuilder.models)
-        .should.containEql('TestModel');
-      Object.keys(ds.modelBuilder.definitions)
-        .should.containEql('TestModel');
+      assert.ok(Object.keys(ds.modelBuilder.models).includes('TestModel'));
+      assert.ok(Object.keys(ds.modelBuilder.definitions).includes('TestModel'));
 
       ds.deleteModelByName('TestModel');
 
-      Object.keys(ds.modelBuilder.models)
-        .should.not.containEql('TestModel');
-      Object.keys(ds.modelBuilder.definitions)
-        .should.not.containEql('TestModel');
+      assert.equal(Object.keys(ds.modelBuilder.models).includes('TestModel'), false);
+      assert.equal(Object.keys(ds.modelBuilder.definitions).includes('TestModel'), false);
     });
 
     it('removes the model from connector registry', () => {
       const ds = new DataSource('ds', {connector: 'memory'});
 
       ds.createModel('TestModel');
-      Object.keys(ds.connector._models)
-        .should.containEql('TestModel');
+      assert.ok(Object.keys(ds.connector._models).includes('TestModel'));
 
       ds.deleteModelByName('TestModel');
 
-      Object.keys(ds.connector._models)
-        .should.not.containEql('TestModel');
+      assert.equal(Object.keys(ds.connector._models).includes('TestModel'), false);
     });
   });
 
@@ -404,8 +426,8 @@ describe('DataSource', function() {
         {'a-flag': 'a-value'},
       );
 
-      result.should.be.equal('a-result');
-      called.should.be.eql({
+      assert.equal(result, 'a-result');
+      assert.deepEqual(called, {
         command: 'command',
         args: ['arg1', 'arg2'],
         options: {'a-flag': 'a-value'},
@@ -428,8 +450,8 @@ describe('DataSource', function() {
       };
 
       const result = await ds.execute('command');
-      result.should.be.equal('a-result');
-      called.should.be.eql({
+      assert.equal(result, 'a-result');
+      assert.deepEqual(called, {
         command: 'command',
         args: [],
         options: {},
@@ -451,7 +473,7 @@ describe('DataSource', function() {
       };
 
       await ds.execute('command', ['arg1', 'arg2']);
-      called.should.be.eql({
+      assert.deepEqual(called, {
         command: 'command',
         args: ['arg1', 'arg2'],
         options: {},
@@ -464,7 +486,7 @@ describe('DataSource', function() {
         callback(null, 'result1', 'result2');
       };
       const result = await ds.execute('command');
-      result.should.eql(['result1', 'result2']);
+      assert.deepEqual(result, ['result1', 'result2']);
     });
 
     it('allows args as object', async () => {
@@ -477,7 +499,7 @@ describe('DataSource', function() {
       // See https://www.npmjs.com/package/loopback-connector-neo4j-graph
       const command = 'MATCH (u:User {email: {email}}) RETURN u';
       await ds.execute(command, {email: 'alice@example.com'}, {options: true});
-      called.should.be.eql({
+      assert.deepEqual(called, {
         command,
         args: {email: 'alice@example.com'},
         options: {options: true},
@@ -499,8 +521,8 @@ describe('DataSource', function() {
         {options: true},
       );
 
-      result.should.equal('a-result');
-      called.should.be.eql([
+      assert.equal(result, 'a-result');
+      assert.deepEqual(called, [
         'collection',
         'command',
         ['arg1', 'arg2'],
@@ -524,8 +546,8 @@ describe('DataSource', function() {
         {options: true},
       );
 
-      result.should.equal('a-result');
-      called.should.be.eql([
+      assert.equal(result, 'a-result');
+      assert.deepEqual(called, [
         'arg1',
         'arg2',
         'arg3',
@@ -536,14 +558,14 @@ describe('DataSource', function() {
 
     it('throws NOT_IMPLEMENTED when no connector is provided', () => {
       ds.connector = undefined;
-      return ds.execute('command').should.be.rejectedWith({
+      return assert.rejects(ds.execute('command'), {
         code: 'NOT_IMPLEMENTED',
       });
     });
 
     it('throws NOT_IMPLEMENTED for connectors not implementing execute', () => {
       ds.connector.execute = undefined;
-      return ds.execute('command').should.be.rejectedWith({
+      return assert.rejects(ds.execute('command'), {
         code: 'NOT_IMPLEMENTED',
       });
     });
@@ -555,7 +577,7 @@ describe('DataSource', function() {
         connector: givenConnectorFailingOnConnect(),
       });
       dataSource.define('MyModel');
-      await dataSource.automigrate().should.be.rejectedWith(/test failure/);
+      await assert.rejects(dataSource.automigrate(), /test failure/);
     });
 
     it('reports connection errors (lazy connect)', () => {
@@ -564,7 +586,7 @@ describe('DataSource', function() {
         lazyConnect: true,
       });
       dataSource.define('MyModel');
-      return dataSource.automigrate().should.be.rejectedWith(/test failure/);
+      return assert.rejects(dataSource.automigrate(), /test failure/);
     });
 
     function givenConnectorFailingOnConnect() {
@@ -585,7 +607,7 @@ describe('DataSource', function() {
         connector: givenConnectorFailingOnConnect(),
       });
       dataSource.define('MyModel');
-      await dataSource.autoupdate().should.be.rejectedWith(/test failure/);
+      await assert.rejects(dataSource.autoupdate(), /test failure/);
     });
 
     it('reports connection errors (lazy connect)', () => {
@@ -594,7 +616,7 @@ describe('DataSource', function() {
         lazyConnect: true,
       });
       dataSource.define('MyModel');
-      return dataSource.autoupdate().should.be.rejectedWith(/test failure/);
+      return assert.rejects(dataSource.autoupdate(), /test failure/);
     });
 
     function givenConnectorFailingOnConnect() {
@@ -615,25 +637,22 @@ describe('DataSource', function() {
       ds.define('Category');
       ds.define('Product');
 
-      Object.keys(ds.modelBuilder.definitions)
-        .should.deepEqual(['Category', 'Product']);
-      Object.keys(ds.modelBuilder.models)
-        .should.deepEqual(['Category', 'Product']);
-      Object.keys(ds.connector._models)
-        .should.deepEqual(['Category', 'Product']);
+      assert.deepEqual(Object.keys(ds.modelBuilder.definitions), ['Category', 'Product']);
+      assert.deepEqual(Object.keys(ds.modelBuilder.models), ['Category', 'Product']);
+      assert.deepEqual(Object.keys(ds.connector._models), ['Category', 'Product']);
 
       ds.deleteAllModels();
 
-      Object.keys(ds.modelBuilder.definitions).should.be.empty();
-      Object.keys(ds.modelBuilder.models).should.be.empty();
-      Object.keys(ds.connector._models).should.be.empty();
+      assert.deepEqual(Object.keys(ds.modelBuilder.definitions), []);
+      assert.deepEqual(Object.keys(ds.modelBuilder.models), []);
+      assert.deepEqual(Object.keys(ds.connector._models), []);
     });
 
     it('preserves the connector instance', () => {
       const ds = new DataSource({connector: 'memory'});
       const connector = ds.connector;
       ds.deleteAllModels();
-      ds.connector.should.equal(connector);
+      assert.equal(ds.connector, connector);
     });
   });
 
@@ -644,7 +663,7 @@ describe('DataSource', function() {
 
       ds.connector.dataSource = null;
 
-      await Model.find().should.be.rejectedWith({
+      await assert.rejects(Model.find(), {
         code: 'CONNECTOR_DETACHED',
       });
     });
@@ -655,19 +674,17 @@ describe('DataSource', function() {
 
       ds.connector.dataSource = undefined;
 
-      await Model.find().should.be.rejectedWith({
+      await assert.rejects(Model.find(), {
         code: 'CONNECTOR_DETACHED',
       });
     });
 
-    it('fails fast when the model datasource is cleared', function(done) {
+    it('fails fast when the model datasource is cleared', async function() {
       const {Model} = givenQueryableModel();
       Model.dataSource = null;
 
-      Model.find(function(err) {
-        should.exist(err);
-        err.code.should.equal('CONNECTOR_DETACHED');
-        done();
+      await assert.rejects(Model.find(), {
+        code: 'CONNECTOR_DETACHED',
       });
     });
 
@@ -675,9 +692,9 @@ describe('DataSource', function() {
       const {Model} = givenQueryableModel();
       Model.dataSource = null;
 
-      (function() {
+      assert.throws(() => {
         return Model.getConnector();
-      }).should.throw({
+      }, {
         code: 'CONNECTOR_DETACHED',
       });
     });
@@ -698,23 +715,23 @@ describe('DataSource', function() {
 
       await ds.connect();
       await ds.disconnect();
-      ds.connected.should.be.false();
+      assert.equal(ds.connected, false);
 
       // Simulate tenant teardown severing the connector back-reference while
       // shared model code still holds on to the old model class.
       ds.connector.dataSource = null;
 
-      await staleModel.find().should.be.rejectedWith({
+      await assert.rejects(staleModel.find(), {
         code: 'CONNECTOR_DETACHED',
       });
-      state.disconnectCalls.should.equal(1);
-      state.allCalls.should.equal(0);
+      assert.equal(state.disconnectCalls, 1);
+      assert.equal(state.allCalls, 0);
     });
 
     it('keeps healthy connector wiring working for find', async () => {
       const {Model} = givenQueryableModel();
 
-      await Model.find().should.be.fulfilledWith([]);
+      assert.deepEqual(await Model.find(), []);
     });
   });
 
@@ -723,23 +740,52 @@ describe('DataSource', function() {
     beforeEach(() => ds = new DataSource('ds', {connector: 'memory'}));
 
     it('sets the default maximum number of event listeners to 16', () => {
-      ds.getMaxOfflineRequests().should.be.eql(16);
+      assert.equal(ds.getMaxOfflineRequests(), 16);
     });
 
     it('uses provided number of listeners', () => {
       ds.settings.maxOfflineRequests = 17;
-      ds.getMaxOfflineRequests().should.be.eql(17);
+      assert.equal(ds.getMaxOfflineRequests(), 17);
     });
 
     it('throws an error if a non-number is provided for the max number of listeners', () => {
       ds.settings.maxOfflineRequests = '17';
 
-      (function() {
+      assert.throws(() => {
         return ds.getMaxOfflineRequests();
-      }).should.throw('maxOfflineRequests must be a number');
+      }, /maxOfflineRequests must be a number/);
     });
   });
 });
+
+function onceEvent(emitter, eventName, onEvent) {
+  return new Promise(resolve => emitter.once(eventName, (...args) => {
+    if (onEvent) onEvent(...args);
+    resolve(args);
+  }));
+}
+
+function nextTick() {
+  return new Promise(resolve => process.nextTick(resolve));
+}
+
+function connectDataSource(dataSource) {
+  return new Promise((resolve, reject) => {
+    dataSource.connect(err => {
+      if (err) return reject(err);
+      resolve();
+    });
+  });
+}
+
+function stopDataSource(dataSource) {
+  return new Promise((resolve, reject) => {
+    dataSource.stop(err => {
+      if (err) return reject(err);
+      resolve();
+    });
+  });
+}
 
 function givenMockConnector(props) {
   const connector = {

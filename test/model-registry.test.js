@@ -5,8 +5,8 @@
 
 'use strict';
 
-const should = require('./init.js');
-const assert = require('assert');
+const {describe, it, beforeEach, afterEach} = require('node:test');
+const assert = require('node:assert/strict');
 const path = require('path');
 
 const jdb = require('../');
@@ -42,22 +42,22 @@ describe('ModelRegistry', function() {
   describe('registerModel', function() {
     it('should register a model in the registry', function() {
       const result = ModelRegistry.registerModel(TestModel);
-      result.should.equal(TestModel);
+      assert.equal(result, TestModel);
 
       // Verify it's registered by checking stats
       const stats = ModelRegistry.getStats();
-      stats.totalModels.should.equal(1);
-      stats.uniqueModels.should.equal(1);
+      assert.equal(stats.totalModels, 1);
+      assert.equal(stats.uniqueModels, 1);
     });
 
     it('should return the model if it has no modelName', function() {
       const invalidModel = {};
       const result = ModelRegistry.registerModel(invalidModel);
-      result.should.equal(invalidModel);
+      assert.equal(result, invalidModel);
 
       // Verify nothing was registered
       const stats = ModelRegistry.getStats();
-      stats.totalModels.should.equal(0);
+      assert.equal(stats.totalModels, 0);
     });
 
     it('should register multiple models', function() {
@@ -65,8 +65,8 @@ describe('ModelRegistry', function() {
       ModelRegistry.registerModel(AnotherModel);
 
       const stats = ModelRegistry.getStats();
-      stats.totalModels.should.equal(2);
-      stats.uniqueModels.should.equal(2);
+      assert.equal(stats.totalModels, 2);
+      assert.equal(stats.uniqueModels, 2);
     });
   });
 
@@ -83,12 +83,12 @@ describe('ModelRegistry', function() {
 
       // Find it by its properties
       const found = ModelRegistry.findModelByStructure(properties);
-      should.exist(found);
-      found.should.equal(TestModel);
+      assert.ok(found);
+      assert.equal(found, TestModel);
 
       // Verify reuse count
       const stats = ModelRegistry.getStats();
-      stats.reuseCount.should.equal(1);
+      assert.equal(stats.reuseCount, 1);
     });
 
     it('should return null if no matching model is found', function() {
@@ -102,12 +102,12 @@ describe('ModelRegistry', function() {
       };
 
       const found = ModelRegistry.findModelByStructure(properties);
-      should.not.exist(found);
+      assert.equal(found, null);
     });
 
     it('should return null if properties are not provided', function() {
       const found = ModelRegistry.findModelByStructure(null);
-      should.not.exist(found);
+      assert.equal(found, null);
     });
   });
 
@@ -118,7 +118,7 @@ describe('ModelRegistry', function() {
 
       // Find it by name
       const found = ModelRegistry.findModelByName('TestModel');
-      found.should.equal(TestModel);
+      assert.equal(found, TestModel);
     });
 
     it('should return undefined if no matching model is found', function() {
@@ -127,7 +127,7 @@ describe('ModelRegistry', function() {
 
       // Try to find with a non-existent name
       const found = ModelRegistry.findModelByName('NonExistentModel');
-      should.not.exist(found);
+      assert.equal(found, undefined);
     });
   });
 
@@ -146,7 +146,7 @@ describe('ModelRegistry', function() {
       const fingerprint1 = ModelRegistry.generateFingerprint(properties1);
       const fingerprint2 = ModelRegistry.generateFingerprint(properties2);
 
-      fingerprint1.should.equal(fingerprint2);
+      assert.equal(fingerprint1, fingerprint2);
     });
 
     it('should generate different fingerprints for different properties', function() {
@@ -168,7 +168,7 @@ describe('ModelRegistry', function() {
       const fingerprint2 = ModelRegistry.generateFingerprint(properties2);
 
       // Make sure the fingerprints are different
-      fingerprint1.should.not.equal(fingerprint2);
+      assert.notEqual(fingerprint1, fingerprint2);
     });
   });
 
@@ -180,7 +180,7 @@ describe('ModelRegistry', function() {
       };
 
       const normalized = ModelRegistry.normalizeProperties(properties);
-      Object.keys(normalized).should.eql(['a', 'b']);
+      assert.deepEqual(Object.keys(normalized), ['a', 'b']);
     });
 
     it('should handle type property specially', function() {
@@ -191,7 +191,7 @@ describe('ModelRegistry', function() {
       };
 
       const normalized = ModelRegistry.normalizeProperties(properties);
-      normalized.name.type.should.equal('String');
+      assert.equal(normalized.name.type, 'String');
     });
 
     it('should handle nested objects', function() {
@@ -203,8 +203,8 @@ describe('ModelRegistry', function() {
       };
 
       const normalized = ModelRegistry.normalizeProperties(properties);
-      normalized.address.street.type.should.equal('String');
-      normalized.address.city.type.should.equal('String');
+      assert.equal(normalized.address.street.type, 'String');
+      assert.equal(normalized.address.city.type, 'String');
     });
 
     it('should handle arrays', function() {
@@ -213,7 +213,7 @@ describe('ModelRegistry', function() {
       };
 
       const normalized = ModelRegistry.normalizeProperties(properties);
-      normalized.tags[0].type.should.equal('String');
+      assert.equal(normalized.tags[0].type, 'String');
     });
   });
 
@@ -224,10 +224,12 @@ describe('ModelRegistry', function() {
       ModelRegistry.findModelByStructure(TestModel.definition.properties);
 
       const stats = ModelRegistry.getStats();
-      stats.should.have.properties('totalModels', 'reuseCount', 'uniqueModels');
-      stats.totalModels.should.equal(1);
-      stats.reuseCount.should.equal(1);
-      stats.uniqueModels.should.equal(1);
+      assert.ok(Object.prototype.hasOwnProperty.call(stats, 'totalModels'));
+      assert.ok(Object.prototype.hasOwnProperty.call(stats, 'reuseCount'));
+      assert.ok(Object.prototype.hasOwnProperty.call(stats, 'uniqueModels'));
+      assert.equal(stats.totalModels, 1);
+      assert.equal(stats.reuseCount, 1);
+      assert.equal(stats.uniqueModels, 1);
     });
   });
 
@@ -239,16 +241,16 @@ describe('ModelRegistry', function() {
 
       // Verify they're registered
       let stats = ModelRegistry.getStats();
-      stats.totalModels.should.equal(2);
+      assert.equal(stats.totalModels, 2);
 
       // Clear the registry
       ModelRegistry.clear();
 
       // Verify it's cleared
       stats = ModelRegistry.getStats();
-      stats.totalModels.should.equal(0);
-      stats.uniqueModels.should.equal(0);
-      stats.reuseCount.should.equal(0);
+      assert.equal(stats.totalModels, 0);
+      assert.equal(stats.uniqueModels, 0);
+      assert.equal(stats.reuseCount, 0);
     });
   });
 });
@@ -277,7 +279,7 @@ describe('Enhanced Fingerprinting', function() {
       const fingerprint1 = ModelRegistry.generateFingerprint(props1);
       const fingerprint2 = ModelRegistry.generateFingerprint(props2);
 
-      fingerprint1.should.equal(fingerprint2);
+      assert.equal(fingerprint1, fingerprint2);
     });
 
     it('should generate different fingerprints for different property names', function() {
@@ -294,7 +296,7 @@ describe('Enhanced Fingerprinting', function() {
       const fingerprint1 = ModelRegistry.generateFingerprint(props1);
       const fingerprint2 = ModelRegistry.generateFingerprint(props2);
 
-      fingerprint1.should.not.equal(fingerprint2);
+      assert.notEqual(fingerprint1, fingerprint2);
     });
 
     it('should handle property types correctly', function() {
@@ -315,55 +317,55 @@ describe('Enhanced Fingerprinting', function() {
 
       // Both models should be in the registry
       const stats = ModelRegistry.getStats();
-      stats.totalModels.should.equal(2);
+      assert.equal(stats.totalModels, 2);
     });
   });
 
   describe('Structure type detection', function() {
     it('should detect simple structures', function() {
       const simpleProps = {name: String, age: Number};
-      ModelRegistry.determineStructureType(simpleProps).should.equal('simple');
+      assert.equal(ModelRegistry.determineStructureType(simpleProps), 'simple');
     });
 
     it('should detect array structures', function() {
       const arrayProps = {tags: [String]};
-      ModelRegistry.determineStructureType(arrayProps).should.equal('complex');
+      assert.equal(ModelRegistry.determineStructureType(arrayProps), 'complex');
     });
 
     it('should detect complex structures', function() {
       const complexProps = {address: {street: String}};
-      ModelRegistry.determineStructureType(complexProps).should.equal('complex');
+      assert.equal(ModelRegistry.determineStructureType(complexProps), 'complex');
     });
 
     it('should handle invalid inputs', function() {
-      ModelRegistry.determineStructureType(null).should.equal('invalid');
-      ModelRegistry.determineStructureType(undefined).should.equal('invalid');
-      ModelRegistry.determineStructureType('not-an-object').should.equal('invalid');
-      ModelRegistry.determineStructureType(123).should.equal('invalid');
+      assert.equal(ModelRegistry.determineStructureType(null), 'invalid');
+      assert.equal(ModelRegistry.determineStructureType(undefined), 'invalid');
+      assert.equal(ModelRegistry.determineStructureType('not-an-object'), 'invalid');
+      assert.equal(ModelRegistry.determineStructureType(123), 'invalid');
     });
   });
 
   describe('Structure depth calculation', function() {
     it('should calculate depth correctly for simple structures', function() {
       const depth0 = {name: String};
-      ModelRegistry.calculateStructureDepth(depth0).should.equal(0);
+      assert.equal(ModelRegistry.calculateStructureDepth(depth0), 0);
     });
 
     it('should calculate depth correctly for nested structures', function() {
       const depth1 = {address: {street: String}};
-      ModelRegistry.calculateStructureDepth(depth1).should.equal(1);
+      assert.equal(ModelRegistry.calculateStructureDepth(depth1), 1);
     });
 
     it('should calculate depth correctly for deeply nested structures', function() {
       const depth2 = {user: {address: {street: String}}};
-      ModelRegistry.calculateStructureDepth(depth2).should.equal(2);
+      assert.equal(ModelRegistry.calculateStructureDepth(depth2), 2);
     });
 
     it('should handle invalid inputs', function() {
-      ModelRegistry.calculateStructureDepth(null).should.equal(0);
-      ModelRegistry.calculateStructureDepth(undefined).should.equal(0);
-      ModelRegistry.calculateStructureDepth('not-an-object').should.equal(0);
-      ModelRegistry.calculateStructureDepth(123).should.equal(0);
+      assert.equal(ModelRegistry.calculateStructureDepth(null), 0);
+      assert.equal(ModelRegistry.calculateStructureDepth(undefined), 0);
+      assert.equal(ModelRegistry.calculateStructureDepth('not-an-object'), 0);
+      assert.equal(ModelRegistry.calculateStructureDepth(123), 0);
     });
   });
 
@@ -373,20 +375,20 @@ describe('Enhanced Fingerprinting', function() {
       const hash1 = ModelRegistry.createHash(input);
       const hash2 = ModelRegistry.createHash(input);
 
-      hash1.should.equal(hash2);
+      assert.equal(hash1, hash2);
     });
 
     it('should generate different hashes for different inputs', function() {
       const hash1 = ModelRegistry.createHash('input1');
       const hash2 = ModelRegistry.createHash('input2');
 
-      hash1.should.not.equal(hash2);
+      assert.notEqual(hash1, hash2);
     });
 
     it('should handle invalid inputs', function() {
-      ModelRegistry.createHash(null).should.equal('invalid-input');
-      ModelRegistry.createHash(undefined).should.equal('invalid-input');
-      ModelRegistry.createHash(123).should.equal('invalid-input');
+      assert.equal(ModelRegistry.createHash(null), 'invalid-input');
+      assert.equal(ModelRegistry.createHash(undefined), 'invalid-input');
+      assert.equal(ModelRegistry.createHash(123), 'invalid-input');
     });
   });
 
@@ -400,14 +402,14 @@ describe('Enhanced Fingerprinting', function() {
       const fingerprint = ModelRegistry.generateFingerprint(circular);
 
       // Should return a fallback fingerprint
-      fingerprint.should.match(/^error-/);
+      assert.match(fingerprint, /^error-/);
     });
 
     it('should handle invalid inputs to generateFingerprint', function() {
-      ModelRegistry.generateFingerprint(null).should.equal('invalid-properties');
-      ModelRegistry.generateFingerprint(undefined).should.equal('invalid-properties');
-      ModelRegistry.generateFingerprint('not-an-object').should.equal('invalid-properties');
-      ModelRegistry.generateFingerprint(123).should.equal('invalid-properties');
+      assert.equal(ModelRegistry.generateFingerprint(null), 'invalid-properties');
+      assert.equal(ModelRegistry.generateFingerprint(undefined), 'invalid-properties');
+      assert.equal(ModelRegistry.generateFingerprint('not-an-object'), 'invalid-properties');
+      assert.equal(ModelRegistry.generateFingerprint(123), 'invalid-properties');
     });
   });
 });
@@ -427,7 +429,7 @@ describe('arePropertiesEquivalent', function() {
     };
 
     const result = arePropertiesEquivalent(props1, props2);
-    result.should.be.true();
+    assert.equal(result, true);
   });
 
   it('should return true for same object reference', function() {
@@ -437,7 +439,7 @@ describe('arePropertiesEquivalent', function() {
     };
 
     const result = arePropertiesEquivalent(props, props);
-    result.should.be.true();
+    assert.equal(result, true);
   });
 
   it('should return false for objects with different property counts', function() {
@@ -453,7 +455,7 @@ describe('arePropertiesEquivalent', function() {
     };
 
     const result = arePropertiesEquivalent(props1, props2);
-    result.should.be.false();
+    assert.equal(result, false);
   });
 
   it('should return false for objects with different property names', function() {
@@ -468,7 +470,7 @@ describe('arePropertiesEquivalent', function() {
     };
 
     const result = arePropertiesEquivalent(props1, props2);
-    result.should.be.false();
+    assert.equal(result, false);
   });
 
   it('should return false for objects with different property values', function() {
@@ -483,7 +485,7 @@ describe('arePropertiesEquivalent', function() {
     };
 
     const result = arePropertiesEquivalent(props1, props2);
-    result.should.be.false();
+    assert.equal(result, false);
   });
 
   it('should handle nested objects', function() {
@@ -504,7 +506,7 @@ describe('arePropertiesEquivalent', function() {
     };
 
     const result = arePropertiesEquivalent(props1, props2);
-    result.should.be.true();
+    assert.equal(result, true);
   });
 
   it('should handle arrays', function() {
@@ -519,7 +521,7 @@ describe('arePropertiesEquivalent', function() {
     };
 
     const result = arePropertiesEquivalent(props1, props2);
-    result.should.be.true();
+    assert.equal(result, true);
   });
 
   it('should handle arrays with different lengths', function() {
@@ -534,7 +536,7 @@ describe('arePropertiesEquivalent', function() {
     };
 
     const result = arePropertiesEquivalent(props1, props2);
-    result.should.be.false();
+    assert.equal(result, false);
   });
 
   it('should handle type property specially', function() {
@@ -551,7 +553,7 @@ describe('arePropertiesEquivalent', function() {
     };
 
     const result = arePropertiesEquivalent(props1, props2);
-    result.should.be.true();
+    assert.equal(result, true);
   });
 });
 
@@ -571,7 +573,7 @@ describe('findEquivalentAnonymousModel', function() {
     });
 
     const result = findEquivalentAnonymousModel(modelBuilder, TestModel);
-    should.not.exist(result);
+    assert.equal(result, null);
   });
 
   it('should find an equivalent anonymous model', function() {
@@ -591,7 +593,7 @@ describe('findEquivalentAnonymousModel', function() {
     modelBuilder.models['AnonymousModel_1'] = AnonymousModel;
 
     const result = findEquivalentAnonymousModel(modelBuilder, sourceModel);
-    result.should.equal(AnonymousModel);
+    assert.equal(result, AnonymousModel);
   });
 
   it('should return null if no equivalent anonymous model is found', function() {
@@ -617,7 +619,7 @@ describe('findEquivalentAnonymousModel', function() {
     modelBuilder.models['AnonymousModel_1'] = AnonymousModel;
 
     const result = findEquivalentAnonymousModel(modelBuilder, sourceModel);
-    should.not.exist(result);
+    assert.equal(result, null);
   });
 });
 
@@ -659,7 +661,7 @@ describe('Tenant Isolation', function() {
       const found = ModelRegistry.findModelByStructure(model.definition.properties);
 
       // Should still find the model
-      found.should.equal(model);
+      assert.equal(found, model);
     });
 
     it('should handle errors in context detection gracefully', function() {
@@ -686,7 +688,7 @@ describe('Tenant Isolation', function() {
       const found = ModelRegistry.findModelByStructure(model.definition.properties);
 
       // Should still find the model
-      found.should.equal(model);
+      assert.equal(found, model);
     });
   });
 
@@ -715,11 +717,11 @@ describe('Tenant Isolation', function() {
       const addressModel2 = Employee.definition.properties.homeAddress.type;
 
       // They should be the same model instance
-      addressModel1.should.equal(addressModel2);
+      assert.equal(addressModel1, addressModel2);
 
       // Check registry stats
       const stats = ModelRegistry.getStats();
-      stats.reuseCount.should.be.greaterThan(0);
+      assert.ok(stats.reuseCount > 0);
     });
 
     it('should handle different tenant contexts when reusing models', function() {
@@ -764,11 +766,11 @@ describe('Tenant Isolation', function() {
       const productModel = Invoice.definition.properties.products.type;
 
       // The array item types should be the same model instance
-      itemModel[0].should.equal(productModel[0]);
+      assert.equal(itemModel[0], productModel[0]);
 
       // Check registry stats
       const stats = ModelRegistry.getStats();
-      stats.reuseCount.should.be.greaterThan(0);
+      assert.ok(stats.reuseCount > 0);
     });
   });
 });

@@ -7,8 +7,9 @@
 'use strict';
 
 /* global getSchema:false */
-const should = require('./init.js');
-
+const {describe, it, before} = require('node:test');
+const assert = require('node:assert/strict');
+require('./init.js');
 const db = getSchema();
 
 describe('defaults', function() {
@@ -24,59 +25,44 @@ describe('defaults', function() {
 
   it('should apply defaults on new', function() {
     const s = new Server;
-    s.port.should.equal(80);
+    assert.equal(s.port, 80);
   });
 
-  it('should apply defaults on create', function(done) {
-    Server.create(function(err, s) {
-      s.port.should.equal(80);
-      done();
-    });
+  it('should apply defaults on create', async function() {
+    const s = await Server.create();
+    assert.equal(s.port, 80);
   });
 
-  it('should NOT apply defaults on read', function(done) {
+  it('should NOT apply defaults on read', async function() {
     db.defineProperty('Server', 'host', {
       type: String,
       default: 'localhost',
     });
-    Server.all(function(err, servers) {
-      should(servers[0].host).be.undefined();
-      done();
-    });
+    const servers = await Server.all();
+    assert.equal(servers[0].host, undefined);
   });
 
-  it('should ignore defaults with limited fields', function(done) {
-    Server.create({host: 'localhost', port: 8080}, function(err, s) {
-      should.not.exist(err);
-      s.port.should.equal(8080);
-      Server.findById(s.id, {fields: ['host']}, function(err, server) {
-        server.should.have.property('host', 'localhost');
-        server.should.have.property('port', undefined);
-        done();
-      });
-    });
+  it('should ignore defaults with limited fields', async function() {
+    const s = await Server.create({host: 'localhost', port: 8080});
+    assert.equal(s.port, 8080);
+    const server = await Server.findById(s.id, {fields: ['host']});
+    assert.equal(server.host, 'localhost');
+    assert.equal(server.port, undefined);
   });
 
-  it('should apply defaults in upsert create', function(done) {
-    Server.upsert({port: 8181}, function(err, server) {
-      should.not.exist(err);
-      should.exist(server.createdAt);
-      done();
-    });
+  it('should apply defaults in upsert create', async function() {
+    const server = await Server.upsert({port: 8181});
+    assert.ok(server.createdAt);
   });
 
-  it('should preserve defaults in upsert update', function(done) {
-    Server.findOne({}, function(err, server) {
-      Server.upsert({id: server.id, port: 1337}, function(err, s) {
-        should.not.exist(err);
-        (Number(1337)).should.equal(s.port);
-        server.createdAt.should.eql(s.createdAt);
-        done();
-      });
-    });
+  it('should preserve defaults in upsert update', async function() {
+    const server = await Server.findOne({});
+    const s = await Server.upsert({id: server.id, port: 1337});
+    assert.equal(s.port, 1337);
+    assert.deepEqual(server.createdAt, s.createdAt);
   });
 
-  context('applyDefaultOnWrites', function() {
+  describe('applyDefaultOnWrites', function() {
     it('does not affect default behavior when not set', async () => {
       const Apple = db.define('Apple', {
         color: {type: String, default: 'red'},
@@ -84,8 +70,8 @@ describe('defaults', function() {
       }, {applyDefaultsOnReads: false});
 
       const apple = await Apple.create();
-      apple.color.should.equal('red');
-      apple.taste.should.equal('sweet');
+      assert.equal(apple.color, 'red');
+      assert.equal(apple.taste, 'sweet');
     });
 
     it('removes the property when set to `false`', async () => {
@@ -96,8 +82,8 @@ describe('defaults', function() {
 
       const apple = await Apple.create({color: 'red', taste: 'sweet'});
       const found = await Apple.findById(apple.id);
-      should(found.color).be.undefined();
-      found.taste.should.equal('sweet');
+      assert.equal(found.color, undefined);
+      assert.equal(found.taste, 'sweet');
     });
 
     it('removes nested property in an object when set to `false`', async () => {
@@ -111,8 +97,8 @@ describe('defaults', function() {
 
       const apple = await Apple.create({name: 'Honeycrisp', qualities: {taste: 'sweet'}});
       const found = await Apple.findById(apple.id);
-      should(found.qualities.color).be.undefined();
-      found.qualities.taste.should.equal('sweet');
+      assert.equal(found.qualities.color, undefined);
+      assert.equal(found.qualities.taste, 'sweet');
     });
 
     it('removes nested property in an array when set to `false', async () => {
@@ -126,12 +112,12 @@ describe('defaults', function() {
 
       const apple = await Apple.create({name: 'Honeycrisp', qualities: [{taste: 'sweet'}]});
       const found = await Apple.findById(apple.id);
-      should(found.qualities[0].color).be.undefined();
-      found.qualities.length.should.equal(1);
+      assert.equal(found.qualities[0].color, undefined);
+      assert.equal(found.qualities.length, 1);
     });
   });
 
-  context('persistDefaultValues', function() {
+  describe('persistDefaultValues', function() {
     it('removes property if value matches default', async () => {
       const Apple = db.define('Apple', {
         color: {type: String, default: 'red', persistDefaultValues: false},
@@ -140,8 +126,8 @@ describe('defaults', function() {
 
       const apple = await Apple.create({color: 'red', taste: 'sweet'});
       const found = await Apple.findById(apple.id);
-      should(found.color).be.undefined();
-      found.taste.should.equal('sweet');
+      assert.equal(found.color, undefined);
+      assert.equal(found.taste, 'sweet');
     });
 
     it('removes property if value matches default in an object', async () => {
@@ -155,8 +141,8 @@ describe('defaults', function() {
 
       const apple = await Apple.create({name: 'Honeycrisp', qualities: {taste: 'sweet'}});
       const found = await Apple.findById(apple.id);
-      should(found.qualities.color).be.undefined();
-      found.qualities.taste.should.equal('sweet');
+      assert.equal(found.qualities.color, undefined);
+      assert.equal(found.qualities.taste, 'sweet');
     });
 
     it('removes property if value matches default in an array', async () => {
@@ -170,8 +156,8 @@ describe('defaults', function() {
 
       const apple = await Apple.create({name: 'Honeycrisp', qualities: [{taste: 'sweet'}]});
       const found = await Apple.findById(apple.id);
-      should(found.qualities[0].color).be.undefined();
-      found.qualities.length.should.equal(1);
+      assert.equal(found.qualities[0].color, undefined);
+      assert.equal(found.qualities.length, 1);
     });
   });
 });

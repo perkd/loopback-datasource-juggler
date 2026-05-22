@@ -5,6 +5,9 @@
 
 'use strict';
 
+const assert = require('node:assert/strict');
+const {beforeEach, describe, it} = require('node:test');
+
 const ValidationError = require('../..').ValidationError;
 
 const contextTestHelpers = require('../helpers/context-test-helpers');
@@ -15,6 +18,7 @@ const uid = require('../helpers/uid-generator');
 const HookMonitor = require('../helpers/hook-monitor');
 
 module.exports = function(dataSource, should, connectorCapabilities) {
+  void should;
   describe('EmbedsOne - destroy', function() {
     let ctxRecorder, hookMonitor, expectedError;
     beforeEach(function sharedSetup() {
@@ -69,8 +73,8 @@ module.exports = function(dataSource, should, connectorCapabilities) {
     }
 
     it('triggers hooks in the correct order', function() {
-      return callDestroy().then(function(result) {
-        hookMonitor.names.should.eql([
+      return callDestroy().then(function() {
+        assert.deepStrictEqual(hookMonitor.names, [
           'Embedded:before delete',
           'Owner:before save',
           'Owner:persist',
@@ -84,7 +88,7 @@ module.exports = function(dataSource, should, connectorCapabilities) {
     it('trigers `before delete` hook', function() {
       Embedded.observe('before delete', ctxRecorder.recordAndNext());
       return callDestroy().then(function() {
-        ctxRecorder.records.should.eql(aCtxForModel(Embedded, {
+        assert.deepStrictEqual(ctxRecorder.records, aCtxForModel(Embedded, {
           instance: {
             id: existingItem.id,
             name: 'created',
@@ -100,19 +104,19 @@ module.exports = function(dataSource, should, connectorCapabilities) {
     // about the model instance being deleted.
     // "ctx.where: { id: embedded.id }" may not be enough,
     // as it does not identify the parent (owner) model
-    it('applies updates from `before delete` hook');
+    it('applies updates from `before delete` hook', {skip: 'TODO'}, function() {});
 
     it('aborts when `before delete` hook fails', function() {
       Embedded.observe('before delete', nextWithError(expectedError));
       return callDestroy().then(throwShouldHaveFailed, function(err) {
-        err.should.eql(expectedError);
+        assert.strictEqual(err, expectedError);
       });
     });
 
     it('trigers `after delete` hook', function() {
       Embedded.observe('after delete', ctxRecorder.recordAndNext());
       return callDestroy().then(function() {
-        ctxRecorder.records.should.eql(aCtxForModel(Embedded, {
+        assert.deepStrictEqual(ctxRecorder.records, aCtxForModel(Embedded, {
           instance: {
             id: existingItem.id,
             name: 'created',
@@ -125,7 +129,7 @@ module.exports = function(dataSource, should, connectorCapabilities) {
     it('aborts when `after delete` hook fails', function() {
       Embedded.observe('after delete', nextWithError(expectedError));
       return callDestroy().then(throwShouldHaveFailed, function(err) {
-        err.should.eql(expectedError);
+        assert.strictEqual(err, expectedError);
       });
     });
 

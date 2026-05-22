@@ -5,10 +5,11 @@
 
 'use strict';
 
+const {beforeEach, describe, it} = require('node:test');
+const assert = require('node:assert/strict');
 const asyncIterators = require('async-iterators');
 const bdd = require('../helpers/bdd-if');
 const helpers = require('./_helpers');
-const should = require('should');
 
 module.exports = function(dataSourceFactory, connectorCapabilities) {
   const canIterateKeys = connectorCapabilities.canIterateKeys !== false;
@@ -21,12 +22,12 @@ module.exports = function(dataSourceFactory, connectorCapabilities) {
       return helpers.givenKeys(CacheItem, ['key1', 'key2'])
         .then(function() {
           const it = CacheItem.iterateKeys();
-          should(it).have.property('next');
+          assert.equal(typeof it.next, 'function');
           return toArray(it);
         })
         .then(function(keys) {
           keys.sort();
-          should(keys).eql(['key1', 'key2']);
+          assert.deepEqual(keys, ['key1', 'key2']);
         });
     });
 
@@ -38,14 +39,14 @@ module.exports = function(dataSourceFactory, connectorCapabilities) {
           return iterator.next();
         })
         .then(function(key) {
-          should(key).equal('key');
+          assert.equal(key, 'key');
           return iterator.next();
         })
         .then(function(key) {
           // Note: AsyncIterator contract requires `undefined` to signal
           // the end of the sequence. Other false-y values like `null`
           // don't work.
-          should(key).equal(undefined);
+          assert.equal(key, undefined);
         });
     });
 

@@ -5,7 +5,8 @@
 
 'use strict';
 
-require('should');
+const {describe, it} = require('node:test');
+const assert = require('node:assert/strict');
 
 const GeoPoint = require('../lib/geo').GeoPoint;
 const nearFilter = require('../lib/geo').nearFilter;
@@ -17,29 +18,29 @@ describe('GeoPoint', function() {
     it('should support a valid array', function() {
       const point = new GeoPoint([-34, 150]);
 
-      point.lat.should.equal(-34);
-      point.lng.should.equal(150);
+      assert.strictEqual(point.lat, -34);
+      assert.strictEqual(point.lng, 150);
     });
 
     it('should support a valid object', function() {
       const point = new GeoPoint({lat: -34, lng: 150});
 
-      point.lat.should.equal(-34);
-      point.lng.should.equal(150);
+      assert.strictEqual(point.lat, -34);
+      assert.strictEqual(point.lng, 150);
     });
 
     it('should support valid string geo coordinates', function() {
       const point = new GeoPoint('-34,150');
 
-      point.lat.should.equal(-34);
-      point.lng.should.equal(150);
+      assert.strictEqual(point.lat, -34);
+      assert.strictEqual(point.lng, 150);
     });
 
     it('should support coordinates as inline parameters', function() {
       const point = new GeoPoint(-34, 150);
 
-      point.lat.should.equal(-34);
-      point.lng.should.equal(150);
+      assert.strictEqual(point.lat, -34);
+      assert.strictEqual(point.lng, 150);
     });
 
     it('should reject invalid parameters', function() {
@@ -47,17 +48,17 @@ describe('GeoPoint', function() {
       let fn = function() {
         new GeoPoint('150,-34');
       };
-      fn.should.throw();
+      assert.throws(fn);
 
       fn = function() {
         new GeoPoint('invalid_string');
       };
-      fn.should.throw();
+      assert.throws(fn);
 
       fn = function() {
         new GeoPoint([150, -34]);
       };
-      fn.should.throw();
+      assert.throws(fn);
 
       fn = function() {
         new GeoPoint({
@@ -65,24 +66,24 @@ describe('GeoPoint', function() {
           lng: null,
         });
       };
-      fn.should.throw();
+      assert.throws(fn);
 
       fn = function() {
         new GeoPoint(150, -34);
       };
-      fn.should.throw();
+      assert.throws(fn);
 
       fn = function() {
         new GeoPoint();
       };
-      fn.should.throw();
+      assert.throws(fn);
     });
   });
 
   describe('toString()', function() {
     it('should return a string in the form "lat,lng"', function() {
       const point = new GeoPoint({lat: -34, lng: 150});
-      point.toString().should.equal('-34,150');
+      assert.strictEqual(point.toString(), '-34,150');
     });
   });
 
@@ -92,8 +93,8 @@ describe('GeoPoint', function() {
 
     it('should return value in miles by default', function() {
       const distance = GeoPoint.distanceBetween(here, there);
-      distance.should.be.a.Number;
-      distance.should.be.approximately(0.03097916611592679, DELTA);
+      assert.strictEqual(typeof distance, 'number');
+      assert.ok(Math.abs(distance - 0.03097916611592679) <= DELTA);
     });
 
     it('should return value using specified unit', function() {
@@ -107,28 +108,28 @@ describe('GeoPoint', function() {
        */
 
       let distance = here.distanceTo(there, {type: 'radians'});
-      distance.should.be.a.Number;
-      distance.should.be.approximately(0.000007825491914348416, DELTA);
+      assert.strictEqual(typeof distance, 'number');
+      assert.ok(Math.abs(distance - 0.000007825491914348416) <= DELTA);
 
       distance = here.distanceTo(there, {type: 'kilometers'});
-      distance.should.be.a.Number;
-      distance.should.be.approximately(0.04985613511367009, DELTA);
+      assert.strictEqual(typeof distance, 'number');
+      assert.ok(Math.abs(distance - 0.04985613511367009) <= DELTA);
 
       distance = here.distanceTo(there, {type: 'meters'});
-      distance.should.be.a.Number;
-      distance.should.be.approximately(49.856135113670085, DELTA);
+      assert.strictEqual(typeof distance, 'number');
+      assert.ok(Math.abs(distance - 49.856135113670085) <= DELTA);
 
       distance = here.distanceTo(there, {type: 'miles'});
-      distance.should.be.a.Number;
-      distance.should.be.approximately(0.03097916611592679, DELTA);
+      assert.strictEqual(typeof distance, 'number');
+      assert.ok(Math.abs(distance - 0.03097916611592679) <= DELTA);
 
       distance = here.distanceTo(there, {type: 'feet'});
-      distance.should.be.a.Number;
-      distance.should.be.approximately(163.56999709209347, DELTA);
+      assert.strictEqual(typeof distance, 'number');
+      assert.ok(Math.abs(distance - 163.56999709209347) <= DELTA);
 
       distance = here.distanceTo(there, {type: 'degrees'});
-      distance.should.be.a.Number;
-      distance.should.be.approximately(0.0004483676593058972, DELTA);
+      assert.strictEqual(typeof distance, 'number');
+      assert.ok(Math.abs(distance - 0.0004483676593058972) <= DELTA);
     });
   });
 
@@ -144,15 +145,12 @@ describe('GeoPoint', function() {
         },
       };
       const filter = nearFilter(where);
-      filter[0].key.should.equal('location');
-      filter[0].should.have.properties({
-        key: 'location',
-        near: {
-          lat: 40.77492964101182,
-          lng: -73.90950187151662,
-        },
-        minDistance: 100,
+      assert.strictEqual(filter[0].key, 'location');
+      assert.deepStrictEqual(filter[0].near, {
+        lat: 40.77492964101182,
+        lng: -73.90950187151662,
       });
+      assert.strictEqual(filter[0].minDistance, 100);
     });
   });
 
@@ -194,7 +192,7 @@ describe('GeoPoint', function() {
         minDistance: 10000,
       }];
       const results = geoFilter(points, filter);
-      results.length.should.be.equal(3);
+      assert.strictEqual(results.length, 3);
     });
   });
 });

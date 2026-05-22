@@ -5,8 +5,8 @@
 
 'use strict';
 
-const should = require('./init.js');
-const assert = require('assert');
+const {describe, it, beforeEach} = require('node:test');
+const assert = require('node:assert/strict');
 const path = require('path');
 
 const jdb = require('../');
@@ -29,20 +29,20 @@ describe('ModelRegistry Edge Cases', function() {
     it('should handle invalid inputs to registerModel gracefully', function() {
       // Test with null
       const result1 = ModelRegistry.registerModel(null);
-      should.equal(result1, null);
+      assert.equal(result1, null);
 
       // Test with undefined
       const result2 = ModelRegistry.registerModel(undefined);
-      should.equal(result2, undefined);
+      assert.equal(result2, undefined);
 
       // Test with object without modelName
       const invalidModel = {settings: {}};
       const result3 = ModelRegistry.registerModel(invalidModel);
-      result3.should.equal(invalidModel);
+      assert.equal(result3, invalidModel);
 
       // Verify nothing was registered
       const stats = ModelRegistry.getStats();
-      stats.totalModels.should.equal(0);
+      assert.equal(stats.totalModels, 0);
     });
 
     it('should handle errors in getCurrentTenant gracefully', function() {
@@ -71,7 +71,7 @@ describe('ModelRegistry Edge Cases', function() {
 
         // Verify it was registered
         const stats = ModelRegistry.getStats();
-        stats.totalModels.should.equal(1);
+        assert.equal(stats.totalModels, 1);
       } finally {
         // Restore original require cache
         require.cache = originalRequireCache;
@@ -87,7 +87,7 @@ describe('ModelRegistry Edge Cases', function() {
       const fingerprint = ModelRegistry.generateFingerprint(circular);
 
       // Should return a fallback fingerprint
-      fingerprint.should.match(/^error-/);
+      assert.match(fingerprint, /^error-/);
     });
   });
 
@@ -95,7 +95,7 @@ describe('ModelRegistry Edge Cases', function() {
     it('should handle missing ModelBuilder in call stack gracefully', function() {
       // Call directly without being in a ModelBuilder method
       const result = ModelRegistry.getCurrentModelBuilder();
-      should.equal(result, null);
+      assert.equal(result, null);
     });
   });
 
@@ -119,8 +119,8 @@ describe('ModelRegistry Edge Cases', function() {
 
       // Try to find it
       const found = ModelRegistry.findModelByStructure(DeepModel.definition.properties);
-      should.exist(found);
-      found.should.equal(DeepModel);
+      assert.ok(found);
+      assert.equal(found, DeepModel);
     });
 
     it('should handle complex array structures', function() {
@@ -141,8 +141,8 @@ describe('ModelRegistry Edge Cases', function() {
 
       // Try to find it
       const found = ModelRegistry.findModelByStructure(ArrayModel.definition.properties);
-      should.exist(found);
-      found.should.equal(ArrayModel);
+      assert.ok(found);
+      assert.equal(found, ArrayModel);
     });
 
     it('should handle mixed property types correctly', function() {
@@ -163,8 +163,8 @@ describe('ModelRegistry Edge Cases', function() {
 
       // Try to find it
       const found = ModelRegistry.findModelByStructure(MixedModel.definition.properties);
-      should.exist(found);
-      found.should.equal(MixedModel);
+      assert.ok(found);
+      assert.equal(found, MixedModel);
     });
   });
 
@@ -205,7 +205,7 @@ describe('ModelRegistry Edge Cases', function() {
       );
 
       // Should not find it due to different strict settings
-      should.not.exist(found);
+      assert.equal(found, null);
     });
   });
 
@@ -225,8 +225,8 @@ describe('ModelRegistry Edge Cases', function() {
 
       // Try to find it
       const found = ModelRegistry.findModelByStructure(SpecialCharsModel.definition.properties);
-      should.exist(found);
-      found.should.equal(SpecialCharsModel);
+      assert.ok(found);
+      assert.equal(found, SpecialCharsModel);
     });
 
     it('should handle properties with different type representations', function() {
@@ -257,7 +257,7 @@ describe('ModelRegistry Edge Cases', function() {
       const found = ModelRegistry.findModelByStructure(props2Copy);
 
       // The fingerprints should be different because the structure is different
-      should.not.exist(found);
+      assert.equal(found, null);
     });
 
     it('should handle empty objects and arrays', function() {
@@ -274,8 +274,8 @@ describe('ModelRegistry Edge Cases', function() {
 
       // Try to find it
       const found = ModelRegistry.findModelByStructure(EmptyStructuresModel.definition.properties);
-      should.exist(found);
-      found.should.equal(EmptyStructuresModel);
+      assert.ok(found);
+      assert.equal(found, EmptyStructuresModel);
     });
   });
 
@@ -319,22 +319,22 @@ describe('ModelRegistry Edge Cases', function() {
       });
 
       // Verify the address models are the same (reused)
-      customer1.address.constructor.should.equal(customer2.address.constructor);
-      customer1.address.constructor.should.equal(addressModel);
+      assert.equal(customer1.address.constructor, customer2.address.constructor);
+      assert.equal(customer1.address.constructor, addressModel);
     });
   });
 
   describe('arePropertiesEquivalent Edge Cases', function() {
     it('should handle null and undefined values', function() {
       // Test with null values
-      arePropertiesEquivalent(null, null).should.be.true();
-      arePropertiesEquivalent(null, {}).should.be.false();
-      arePropertiesEquivalent({}, null).should.be.false();
+      assert.equal(arePropertiesEquivalent(null, null), true);
+      assert.equal(arePropertiesEquivalent(null, {}), false);
+      assert.equal(arePropertiesEquivalent({}, null), false);
 
       // Test with undefined values
-      arePropertiesEquivalent(undefined, undefined).should.be.true();
-      arePropertiesEquivalent(undefined, {}).should.be.false();
-      arePropertiesEquivalent({}, undefined).should.be.false();
+      assert.equal(arePropertiesEquivalent(undefined, undefined), true);
+      assert.equal(arePropertiesEquivalent(undefined, {}), false);
+      assert.equal(arePropertiesEquivalent({}, undefined), false);
     });
 
     it('should handle properties with different orders', function() {
@@ -350,7 +350,7 @@ describe('ModelRegistry Edge Cases', function() {
         b: 2,
       };
 
-      arePropertiesEquivalent(props1, props2).should.be.true();
+      assert.equal(arePropertiesEquivalent(props1, props2), true);
     });
 
     it('should handle nested arrays with different orders', function() {
@@ -366,8 +366,8 @@ describe('ModelRegistry Edge Cases', function() {
         tags: ['c', 'b', 'a'],
       };
 
-      arePropertiesEquivalent(props1, props2).should.be.true();
-      arePropertiesEquivalent(props1, props3).should.be.false();
+      assert.equal(arePropertiesEquivalent(props1, props2), true);
+      assert.equal(arePropertiesEquivalent(props1, props3), false);
     });
   });
 
@@ -381,7 +381,7 @@ describe('ModelRegistry Edge Cases', function() {
 
       // This should return null since it's not anonymous
       const result = findEquivalentAnonymousModel(modelBuilder, NamedModel);
-      should.not.exist(result);
+      assert.equal(result, null);
     });
 
     it('should handle models without definitions', function() {
@@ -394,7 +394,7 @@ describe('ModelRegistry Edge Cases', function() {
 
       // This should not throw an error
       const result = findEquivalentAnonymousModel(modelBuilder, invalidModel);
-      should.not.exist(result);
+      assert.equal(result, null);
     });
   });
 });

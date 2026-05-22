@@ -5,19 +5,17 @@
 
 'use strict';
 
-// This test written in mocha+should.js
 /* global getSchema:false */
-const should = require('./init.js');
+const assert = require('node:assert/strict');
+const {afterEach, before, beforeEach, describe, it} = require('node:test');
 
-const j = require('../'),
-  Schema = j.Schema,
-  AbstractClass = j.AbstractClass,
-  Hookable = j.Hookable;
+require('./init.js');
 
-let db, User;
+let db;
+let User;
 
 describe('hooks', function() {
-  before(function(done) {
+  before(async function() {
     db = getSchema();
 
     User = db.define('User', {
@@ -27,7 +25,7 @@ describe('hooks', function() {
       state: String,
     });
 
-    db.automigrate('User', done);
+    await db.automigrate('User');
   });
 
   describe('initialize', function() {
@@ -35,50 +33,52 @@ describe('hooks', function() {
       User.afterInitialize = null;
     });
 
-    it('should be triggered on new', function(done) {
-      User.afterInitialize = function() {
-        done();
-      };
-      new User;
+    it('should be triggered on new', async function() {
+      await new Promise((resolve) => {
+        User.afterInitialize = function() {
+          resolve();
+        };
+        new User();
+      });
     });
 
-    it('should be triggered on create', function(done) {
-      let user;
+    it('should be triggered on create', async function() {
       User.afterInitialize = function() {
         if (this.name === 'Nickolay') {
           this.name += ' Rozental';
         }
       };
-      User.create({name: 'Nickolay'}, function(err, u) {
-        u.id.should.be.ok;
-        u.name.should.equal('Nickolay Rozental');
-        done();
-      });
+
+      const user = await User.create({name: 'Nickolay'});
+      assert.ok(user.id);
+      assert.strictEqual(user.name, 'Nickolay Rozental');
     });
   });
 
   describe('create', function() {
     afterEach(removeHooks('Create'));
 
-    it('should be triggered on create', function(done) {
-      addHooks('Create', done);
-      User.create();
+    it('should be triggered on create', async function() {
+      const hookPromise = addHooks('Create');
+      await User.create();
+      await hookPromise;
     });
 
     it('should not be triggered on new', function() {
       User.beforeCreate = function(next) {
-        should.fail('This should not be called');
+        assert.fail('This should not be called');
         next();
       };
-      const u = new User;
+      new User();
     });
 
-    it('should be triggered on new+save', function(done) {
-      addHooks('Create', done);
-      (new User).save();
+    it('should be triggered on new+save', async function() {
+      const hookPromise = addHooks('Create');
+      await (new User()).save();
+      await hookPromise;
     });
 
-    it('afterCreate should not be triggered on failed create', function(done) {
+    it('afterCreate should not be triggered on failed create', async function() {
       const old = User.dataSource.connector.create;
       User.dataSource.connector.create = function(modelName, id, cb) {
         cb(new Error('error'));
@@ -87,29 +87,34 @@ describe('hooks', function() {
       User.afterCreate = function() {
         throw new Error('shouldn\'t be called');
       };
-      User.create(function(err, user) {
-        User.dataSource.connector.create = old;
-        done();
+
+      await new Promise((resolve) => {
+        User.create(function() {
+          User.dataSource.connector.create = old;
+          resolve();
+        });
       });
     });
 
-    it('afterCreate should not be triggered on failed beforeCreate', function(done) {
-      User.beforeCreate = function(next, data) {
-        // Skip next()
+    it('afterCreate should not be triggered on failed beforeCreate', async function() {
+      User.beforeCreate = function(next) {
         next(new Error('fail in beforeCreate'));
       };
 
       const old = User.dataSource.connector.create;
-      User.dataSource.connector.create = function(modelName, id, cb) {
+      User.dataSource.connector.create = function() {
         throw new Error('shouldn\'t be called');
       };
 
       User.afterCreate = function() {
         throw new Error('shouldn\'t be called');
       };
-      User.create(function(err, user) {
-        User.dataSource.connector.create = old;
-        done();
+
+      await new Promise((resolve) => {
+        User.create(function() {
+          User.dataSource.connector.create = old;
+          resolve();
+        });
       });
     });
   });
@@ -117,96 +122,108 @@ describe('hooks', function() {
   describe('save', function() {
     afterEach(removeHooks('Save'));
 
-    it('should be triggered on create', function(done) {
-      addHooks('Save', done);
-      User.create();
+    it('should be triggered on create', async function() {
+      const hookPromise = addHooks('Save');
+      await User.create();
+      await hookPromise;
     });
 
-    it('should be triggered on new+save', function(done) {
-      addHooks('Save', done);
-      (new User).save();
+    it('should be triggered on new+save', async function() {
+      const hookPromise = addHooks('Save');
+      await (new User()).save();
+      await hookPromise;
     });
 
-    it('should be triggered on updateAttributes', function(done) {
-      User.create(function(err, user) {
-        addHooks('Save', done);
-        user.updateAttributes({name: 'Anatoliy'});
-      });
+    it('should be triggered on updateAttributes', async function() {
+      const user = await User.create();
+      const hookPromise = addHooks('Save');
+      await user.updateAttributes({name: 'Anatoliy'});
+      await hookPromise;
     });
 
-    it('should be triggered on save', function(done) {
-      User.create(function(err, user) {
-        addHooks('Save', done);
-        user.name = 'Hamburger';
-        user.save();
-      });
+    it('should be triggered on save', async function() {
+      const user = await User.create();
+      const hookPromise = addHooks('Save');
+      user.name = 'Hamburger';
+      await user.save();
+      await hookPromise;
     });
 
-    it('should save full object', function(done) {
-      User.create(function(err, user) {
+    it('should save full object', async function() {
+      const user = await User.create();
+      const hookPromise = new Promise((resolve, reject) => {
         User.beforeSave = function(next, data) {
-          data.should.have.keys('id', 'name', 'email',
-            'password', 'state');
-          done();
+          try {
+            assert.deepStrictEqual(
+              Object.keys(data).sort(),
+              ['email', 'id', 'name', 'password', 'state'],
+            );
+            resolve();
+            next();
+          } catch (err) {
+            reject(err);
+            next(err);
+          }
         };
-        user.save();
       });
+
+      await user.save();
+      await hookPromise;
     });
 
-    it('should save actual modifications to database', function(done) {
+    it('should save actual modifications to database', async function() {
       User.beforeSave = function(next, data) {
         data.password = 'hash';
         next();
       };
-      User.destroyAll(function() {
-        User.create({
-          email: 'james.bond@example.com',
-          password: '53cr3t',
-        }, function() {
-          User.findOne({
-            where: {email: 'james.bond@example.com'},
-          }, function(err, jb) {
-            jb.password.should.equal('hash');
-            done();
-          });
-        });
+
+      await User.destroyAll();
+      await User.create({
+        email: 'james.bond@example.com',
+        password: '53cr3t',
       });
+
+      const jb = await User.findOne({
+        where: {email: 'james.bond@example.com'},
+      });
+      assert.strictEqual(jb.password, 'hash');
     });
 
-    it('should save actual modifications on updateAttributes', function(done) {
+    it('should save actual modifications on updateAttributes', async function() {
       User.beforeSave = function(next, data) {
         data.password = 'hash';
         next();
       };
-      User.destroyAll(function() {
-        User.create({
-          email: 'james.bond@example.com',
-        }, function(err, u) {
-          u.updateAttribute('password', 'new password', function(e, u) {
-            should.not.exist(e);
-            should.exist(u);
-            u.password.should.equal('hash');
-            User.findOne({
-              where: {email: 'james.bond@example.com'},
-            }, function(err, jb) {
-              jb.password.should.equal('hash');
-              done();
-            });
-          });
-        });
+
+      await User.destroyAll();
+      const user = await User.create({
+        email: 'james.bond@example.com',
       });
+
+      const updated = await user.updateAttribute('password', 'new password');
+      assert.ok(updated);
+      assert.strictEqual(updated.password, 'hash');
+
+      const jb = await User.findOne({
+        where: {email: 'james.bond@example.com'},
+      });
+      assert.strictEqual(jb.password, 'hash');
     });
 
-    it('beforeSave should be able to skip next', function(done) {
-      User.create(function(err, user) {
-        User.beforeSave = function(next, data) {
-          next(null, 'XYZ');
-        };
-        user.save(function(err, result) {
-          result.should.be.eql('XYZ');
-          done();
+    it('beforeSave should be able to skip next', async function() {
+      const user = await User.create();
+      User.beforeSave = function(next) {
+        next(null, 'XYZ');
+      };
+
+      const result = await new Promise((resolve, reject) => {
+        user.save(function(err, saveResult) {
+          if (err) return reject(err);
+          resolve(saveResult);
         });
       });
+
+      assert.deepStrictEqual(result, 'XYZ');
     });
   });
 
@@ -215,7 +232,7 @@ describe('hooks', function() {
 
     it('should not be triggered on create', function() {
       User.beforeUpdate = function(next) {
-        should.fail('This should not be called');
+        assert.fail('This should not be called');
         next();
       };
       User.create();
@@ -223,50 +240,61 @@ describe('hooks', function() {
 
     it('should not be triggered on new+save', function() {
       User.beforeUpdate = function(next) {
-        should.fail('This should not be called');
+        assert.fail('This should not be called');
         next();
       };
-      (new User).save();
+      (new User()).save();
     });
 
-    it('should be triggered on updateAttributes', function(done) {
-      User.create(function(err, user) {
-        addHooks('Update', done);
-        user.updateAttributes({name: 'Anatoliy'});
-      });
+    it('should be triggered on updateAttributes', async function() {
+      const user = await User.create();
+      const hookPromise = addHooks('Update');
+      await user.updateAttributes({name: 'Anatoliy'});
+      await hookPromise;
     });
 
-    it('should be triggered on save', function(done) {
-      User.create(function(err, user) {
-        addHooks('Update', done);
-        user.name = 'Hamburger';
-        user.save();
-      });
+    it('should be triggered on save', async function() {
+      const user = await User.create();
+      const hookPromise = addHooks('Update');
+      user.name = 'Hamburger';
+      await user.save();
+      await hookPromise;
     });
 
-    it('should update limited set of fields', function(done) {
-      User.create(function(err, user) {
+    it('should update limited set of fields', async function() {
+      const user = await User.create();
+      const hookPromise = new Promise((resolve, reject) => {
         User.beforeUpdate = function(next, data) {
-          data.should.have.keys('name', 'email');
-          done();
+          try {
+            assert.deepStrictEqual(Object.keys(data).sort(), ['email', 'name']);
+            resolve();
+            next();
+          } catch (err) {
+            reject(err);
+            next(err);
+          }
         };
-        user.updateAttributes({name: 1, email: 2});
       });
+
+      await user.updateAttributes({name: 1, email: 2});
+      await hookPromise;
     });
 
-    it('should not trigger after-hook on failed save', function(done) {
+    it('should not trigger after-hook on failed save', async function() {
       User.afterUpdate = function() {
-        should.fail('afterUpdate shouldn\'t be called');
+        assert.fail('afterUpdate shouldn\'t be called');
       };
-      User.create(function(err, user) {
-        const save = User.dataSource.connector.save;
-        User.dataSource.connector.save = function(modelName, id, cb) {
-          User.dataSource.connector.save = save;
-          cb(new Error('Error'));
-        };
 
-        user.save(function(err) {
-          done();
+      const user = await User.create();
+      const save = User.dataSource.connector.save;
+      User.dataSource.connector.save = function(modelName, id, cb) {
+        User.dataSource.connector.save = save;
+        cb(new Error('Error'));
+      };
+
+      await new Promise((resolve) => {
+        user.save(function() {
+          resolve();
         });
       });
     });
@@ -275,179 +303,192 @@ describe('hooks', function() {
   describe('destroy', function() {
     afterEach(removeHooks('Destroy'));
 
-    it('should be triggered on destroy', function(done) {
+    it('should be triggered on destroy', async function() {
       let hook = 'not called';
       User.beforeDestroy = function(next) {
         hook = 'called';
         next();
       };
       User.afterDestroy = function(next) {
-        hook.should.eql('called');
+        assert.strictEqual(hook, 'called');
         next();
       };
-      User.create(function(err, user) {
-        user.destroy(done);
-      });
+
+      const user = await User.create();
+      await user.destroy();
     });
 
-    it('should not trigger after-hook on failed destroy', function(done) {
+    it('should not trigger after-hook on failed destroy', async function() {
       const destroy = User.dataSource.connector.destroy;
       User.dataSource.connector.destroy = function(modelName, id, cb) {
         cb(new Error('error'));
       };
       User.afterDestroy = function() {
-        should.fail('afterDestroy shouldn\'t be called');
+        assert.fail('afterDestroy shouldn\'t be called');
       };
-      User.create(function(err, user) {
-        user.destroy(function(err) {
+
+      const user = await User.create();
+      await new Promise((resolve) => {
+        user.destroy(function() {
           User.dataSource.connector.destroy = destroy;
-          done();
+          resolve();
         });
       });
     });
   });
 
   describe('lifecycle', function() {
-    let life = [], user;
-    before(function(done) {
-      User.beforeSave = function(d) {
+    let life = [];
+    let user;
+
+    before(async function() {
+      User.beforeSave = function(next) {
         life.push('beforeSave');
-        d();
+        next();
       };
-      User.beforeCreate = function(d) {
+      User.beforeCreate = function(next) {
         life.push('beforeCreate');
-        d();
+        next();
       };
-      User.beforeUpdate = function(d) {
+      User.beforeUpdate = function(next) {
         life.push('beforeUpdate');
-        d();
+        next();
       };
-      User.beforeDestroy = function(d) {
+      User.beforeDestroy = function(next) {
         life.push('beforeDestroy');
-        d();
+        next();
       };
-      User.beforeValidate = function(d) {
+      User.beforeValidate = function(next) {
         life.push('beforeValidate');
-        d();
+        next();
       };
       User.afterInitialize = function() {
         life.push('afterInitialize');
       };
-      User.afterSave = function(d) {
+      User.afterSave = function(next) {
         life.push('afterSave');
-        d();
+        next();
       };
-      User.afterCreate = function(d) {
+      User.afterCreate = function(next) {
         life.push('afterCreate');
-        d();
+        next();
       };
-      User.afterUpdate = function(d) {
+      User.afterUpdate = function(next) {
         life.push('afterUpdate');
-        d();
+        next();
       };
-      User.afterDestroy = function(d) {
+      User.afterDestroy = function(next) {
         life.push('afterDestroy');
-        d();
+        next();
       };
-      User.afterValidate = function(d) {
+      User.afterValidate = function(next) {
         life.push('afterValidate');
-        d();
+        next();
       };
-      User.create(function(e, u) {
-        user = u;
-        life = [];
-        done();
-      });
+
+      user = await User.create();
+      life = [];
     });
+
     beforeEach(function() {
       life = [];
     });
 
-    it('should describe create sequence', function(done) {
-      User.create(function() {
-        life.should.eql([
-          'afterInitialize',
-          'beforeValidate',
-          'afterValidate',
-          'beforeCreate',
-          'beforeSave',
-          'afterSave',
-          'afterCreate',
-        ]);
-        done();
-      });
+    it('should describe create sequence', async function() {
+      await User.create();
+      assert.deepStrictEqual(life, [
+        'afterInitialize',
+        'beforeValidate',
+        'afterValidate',
+        'beforeCreate',
+        'beforeSave',
+        'afterSave',
+        'afterCreate',
+      ]);
     });
 
-    it('should describe new+save sequence', function(done) {
-      const u = new User;
-      u.save(function() {
-        life.should.eql([
-          'afterInitialize',
-          'beforeValidate',
-          'afterValidate',
-          'beforeCreate',
-          'beforeSave',
-          'afterSave',
-          'afterCreate',
-        ]);
-        done();
-      });
+    it('should describe new+save sequence', async function() {
+      const instance = new User();
+      await instance.save();
+      assert.deepStrictEqual(life, [
+        'afterInitialize',
+        'beforeValidate',
+        'afterValidate',
+        'beforeCreate',
+        'beforeSave',
+        'afterSave',
+        'afterCreate',
+      ]);
     });
 
-    it('should describe updateAttributes sequence', function(done) {
-      user.updateAttributes({name: 'Antony'}, function() {
-        life.should.eql([
-          'beforeValidate',
-          'afterValidate',
-          'beforeSave',
-          'beforeUpdate',
-          'afterUpdate',
-          'afterSave',
-        ]);
-        done();
-      });
+    it('should describe updateAttributes sequence', async function() {
+      await user.updateAttributes({name: 'Antony'});
+      assert.deepStrictEqual(life, [
+        'beforeValidate',
+        'afterValidate',
+        'beforeSave',
+        'beforeUpdate',
+        'afterUpdate',
+        'afterSave',
+      ]);
     });
 
-    it('should describe isValid sequence', function(done) {
-      should.not.exist(
-        user.constructor._validations,
-        'Expected user to have no validations, but she have',
-      );
-      user.isValid(function(valid) {
-        valid.should.be.true;
-        life.should.eql([
-          'beforeValidate',
-          'afterValidate',
-        ]);
-        done();
+    it('should describe isValid sequence', async function() {
+      assert.strictEqual(user.constructor._validations, undefined);
+
+      const valid = await new Promise((resolve) => {
+        user.isValid(function(isValid) {
+          resolve(isValid);
+        });
       });
+
+      assert.strictEqual(valid, true);
+      assert.deepStrictEqual(life, [
+        'beforeValidate',
+        'afterValidate',
+      ]);
     });
 
-    it('should describe destroy sequence', function(done) {
-      user.destroy(function() {
-        life.should.eql([
-          'beforeDestroy',
-          'afterDestroy',
-        ]);
-        done();
-      });
+    it('should describe destroy sequence', async function() {
+      await user.destroy();
+      assert.deepStrictEqual(life, [
+        'beforeDestroy',
+        'afterDestroy',
+      ]);
     });
   });
 });
 
-function addHooks(name, done) {
+function addHooks(name) {
   const random = String(Math.floor(Math.random() * 1000));
   let called = false;
+
+  let resolveHook;
+  let rejectHook;
+  const hookPromise = new Promise((resolve, reject) => {
+    resolveHook = resolve;
+    rejectHook = reject;
+  });
+
   User['before' + name] = function(next, data) {
     called = true;
     data.email = random;
     next();
   };
+
   User['after' + name] = function(next) {
-    (new Boolean(called)).should.equal(true);
-    this.should.have.property('email', random);
-    done();
+    try {
+      assert.strictEqual(Boolean(called), true);
+      assert.strictEqual(this.email, random);
+      resolveHook();
+      next();
+    } catch (err) {
+      rejectHook(err);
+      next(err);
+    }
   };
+
+  return hookPromise;
 }
 
 function removeHooks(name) {

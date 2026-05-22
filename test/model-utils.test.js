@@ -4,10 +4,13 @@
 // License text available at https://opensource.org/licenses/MIT
 
 'use strict';
+const {describe, it, before} = require('node:test');
+const assert = require('node:assert/strict');
+require('./init.js');
 let db;
 
 describe('model-utils', () => {
-  context('coerce', () => {
+  describe('coerce', () => {
     before(() => {
       // eslint-disable-next-line no-undef
       db = getSchema();
@@ -93,7 +96,12 @@ describe('model-utils', () => {
       assertInstanceOf(coercedData.rootProp.nestedObject.arrayWithinObject[0].dateProp, Date);
     });
     function assertInstanceOf(val, type) {
-      val.should.be.instanceOf(type);
+      if (type === Number) {
+        assert.equal(typeof val, 'number');
+        return;
+      }
+
+      assert.ok(val instanceof type);
     }
   });
 });

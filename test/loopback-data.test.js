@@ -5,12 +5,12 @@
 
 // This test written in mocha+should.js
 'use strict';
-const should = require('./init.js');
-
+const {describe, it} = require('node:test');
+const assert = require('node:assert/strict');
 const loopbackData = require('../');
 
 describe('loopback-datasource-juggler', function() {
   it('should expose version', function() {
-    loopbackData.version.should.equal(require('../package.json').version);
+    assert.equal(loopbackData.version, require('../package.json').version);
   });
 });

@@ -5,11 +5,13 @@
 
 'use strict';
 /* global getSchema:false */
+const {describe, it, before, beforeEach} = require('node:test');
+const assert = require('node:assert/strict');
+require('./init.js');
 const DataSource = require('..').DataSource;
 const EventEmitter = require('events');
 const Connector = require('loopback-connector').Connector;
 const Transaction = require('loopback-connector').Transaction;
-const should = require('./init.js');
 
 describe('Transactions on memory connector', function() {
   let db, tx;
@@ -19,35 +21,28 @@ describe('Transactions on memory connector', function() {
     db.define('Model');
   });
 
-  it('returns an EventEmitter object', done => {
+  it('returns an EventEmitter object', () => {
     tx = db.transaction();
-    tx.should.be.instanceOf(EventEmitter);
-    done();
+    assert.ok(tx instanceof EventEmitter);
   });
 
-  it('exposes and caches slave models', done => {
+  it('exposes and caches slave models', () => {
     testModelCaching(tx.models, db.models);
-    done();
   });
 
-  it('changes count when committing', done => {
-    db.models.Model.count((err, count) => {
-      should.not.exist(err);
-      should.exist(count);
-      count.should.equal(0);
-      tx.models.Model.create(Array(1), () => {
-        // Only called after tx.commit()!
-      });
-      tx.commit(err => {
-        should.not.exist(err);
-        db.models.Model.count((err, count) => {
-          should.not.exist(err);
-          should.exist(count);
-          count.should.equal(1);
-          done();
-        });
-      });
+  it('changes count when committing', async () => {
+    const countBefore = await countModels(db.models.Model);
+    assert.ok(countBefore !== undefined);
+    assert.equal(countBefore, 0);
+
+    tx.models.Model.create(Array(1), () => {
+      // Only called after tx.commit()!
     });
+    await commit(tx);
+
+    const countAfter = await countModels(db.models.Model);
+    assert.ok(countAfter !== undefined);
+    assert.equal(countAfter, 1);
   });
 });
 
@@ -60,50 +55,40 @@ describe('Transactions on test connector without execute()', () => {
 
   beforeEach(resetState);
 
-  it('resolves to an EventEmitter', done => {
+  it('resolves to an EventEmitter', async () => {
     const promise = db.transaction();
-    promise.should.be.Promise();
-    promise.then(transaction => {
-      should.exist(transaction);
-      transaction.should.be.instanceof(EventEmitter);
-      tx = transaction;
-      done();
-    }, done);
+    assert.ok(promise instanceof Promise);
+    const transaction = await promise;
+    assert.ok(transaction);
+    assert.ok(transaction instanceof EventEmitter);
+    tx = transaction;
   });
 
   it('beginTransaction returns a transaction', async () => {
-    const promise = db.beginTransaction(Transaction.READ_UNCOMMITTED);
-    promise.should.be.Promise();
-    const transaction = await promise;
-    transaction.should.be.instanceof(EventEmitter);
+    const transaction = await db.beginTransaction(Transaction.READ_UNCOMMITTED);
+    assert.ok(transaction);
+    assert.equal(typeof transaction.commit, 'function');
+    assert.equal(typeof transaction.rollback, 'function');
   });
 
-  it('exposes and caches slave models', done => {
+  it('exposes and caches slave models', () => {
     testModelCaching(tx.models, db.models);
-    done();
   });
 
-  it('does not allow nesting of transactions', done => {
-    (() => tx.transaction()).should.throw('Nesting transactions is not supported');
-    done();
+  it('does not allow nesting of transactions', () => {
+    assert.throws(() => tx.transaction(), /Nesting transactions is not supported/);
   });
 
-  it('calls commit() on the connector', done => {
-    db.transaction().then(tx => {
-      tx.commit(err => {
-        callCount.should.deepEqual({commit: 1, rollback: 0, create: 0});
-        done(err);
-      });
-    }, done);
+  it('calls commit() on the connector', async () => {
+    const tx = await db.transaction();
+    await commit(tx);
+    assert.deepEqual(callCount, {commit: 1, rollback: 0, create: 0});
   });
 
-  it('calls rollback() on the connector', done => {
-    db.transaction().then(tx => {
-      tx.rollback(err => {
-        callCount.should.deepEqual({commit: 0, rollback: 1, create: 0});
-        done(err);
-      });
-    }, done);
+  it('calls rollback() on the connector', async () => {
+    const tx = await db.transaction();
+    await rollback(tx);
+    assert.deepEqual(callCount, {commit: 0, rollback: 1, create: 0});
   });
 });
 
@@ -116,52 +101,54 @@ describe('Transactions on test connector with execute()', () => {
 
   beforeEach(resetState);
 
-  it('passes models and calls commit() automatically', done => {
-    db.transaction(models => {
+  it('passes models and calls commit() automatically', async () => {
+    await transactionWithCallback(db, models => {
       testModelCaching(models, db.models);
       return models.Model.create({});
-    }, err => {
-      callCount.should.deepEqual({commit: 1, rollback: 0, create: 1});
-      transactionPassed.should.be.true();
-      done(err);
     });
+    assert.deepEqual(callCount, {commit: 1, rollback: 0, create: 1});
+    assert.equal(transactionPassed, true);
   });
 
-  it('calls rollback() automatically when throwing an error', done => {
+  it('calls rollback() automatically when throwing an error', async () => {
     let error;
-    db.transaction(models => {
-      error = new Error('exception');
-      throw error;
-    }, err => {
-      error.should.equal(err);
-      callCount.should.deepEqual({commit: 0, rollback: 1, create: 0});
-      done();
-    });
+    await assert.rejects(
+      transactionWithCallback(db, models => {
+        error = new Error('exception');
+        throw error;
+      }),
+      err => err === error,
+    );
+    assert.deepEqual(callCount, {commit: 0, rollback: 1, create: 0});
   });
 
-  it('reports execution timeouts', done => {
+  it('reports execution timeouts', async () => {
     let timedOut = false;
-    db.transaction(models => {
-      setTimeout(() => {
-        models.Model.create({}, function(err) {
-          if (!timedOut) {
-            done(new Error('Timeout was ineffective'));
-          } else {
-            should.exist(err);
-            err.message.should.startWith('The transaction is not active:');
-            done();
-          }
-        });
-      }, 50);
-    }, {
-      timeout: 25,
-    }, err => {
-      timedOut = true;
-      should.exist(err);
-      err.code.should.equal('TRANSACTION_TIMEOUT');
-      err.message.should.equal('Transaction is rolled back due to timeout');
-      callCount.should.deepEqual({commit: 0, rollback: 1, create: 0});
+    const lateCreateResult = new Promise((resolve, reject) => {
+      transactionWithCallback(db, models => {
+        setTimeout(() => {
+          models.Model.create({}, function(err) {
+            if (!timedOut) {
+              reject(new Error('Timeout was ineffective'));
+            } else {
+              resolve(err);
+            }
+          });
+        }, 50);
+      }, {
+        timeout: 25,
+      }).catch(err => {
+        timedOut = true;
+        assert.ok(err);
+        assert.equal(err.code, 'TRANSACTION_TIMEOUT');
+        assert.equal(err.message, 'Transaction is rolled back due to timeout');
+        assert.deepEqual(callCount, {commit: 0, rollback: 1, create: 0});
+      });
     });
+
+    const err = await lateCreateResult;
+    assert.ok(err);
+    assert.match(err.message, /^The transaction is not active:/);
   });
 });
 
@@ -177,20 +164,20 @@ function createDataSource() {
 }
 
 function testModelCaching(txModels, dbModels) {
-  should.exist(txModels);
+  assert.ok(txModels);
   // Test models caching mechanism:
   // Model property should be a accessor with a getter first:
   const accessor = Object.getOwnPropertyDescriptor(txModels, 'Model');
-  should.exist(accessor);
-  should.exist(accessor.get);
-  accessor.get.should.be.Function();
+  assert.ok(accessor);
+  assert.ok(accessor.get);
+  assert.equal(typeof accessor.get, 'function');
   const Model = txModels.Model;
-  should.exist(Model);
+  assert.ok(Model);
   // After accessing it once, it should be a normal cached property:
   const desc = Object.getOwnPropertyDescriptor(txModels, 'Model');
-  should.exist(desc.value);
-  Model.should.equal(txModels.Model);
-  Model.prototype.should.be.instanceof(dbModels.Model);
+  assert.ok(desc.value);
+  assert.equal(Model, txModels.Model);
+  assert.ok(Model.prototype instanceof dbModels.Model);
 }
 
 let callCount;
@@ -199,6 +186,48 @@ let transactionPassed;
 function resetState() {
   callCount = {commit: 0, rollback: 0, create: 0};
   transactionPassed = false;
+}
+
+function countModels(Model) {
+  return new Promise((resolve, reject) => {
+    Model.count((err, count) => {
+      if (err) return reject(err);
+      resolve(count);
+    });
+  });
+}
+
+function commit(tx) {
+  return new Promise((resolve, reject) => {
+    tx.commit(err => {
+      if (err) return reject(err);
+      resolve();
+    });
+  });
+}
+
+function rollback(tx) {
+  return new Promise((resolve, reject) => {
+    tx.rollback(err => {
+      if (err) return reject(err);
+      resolve();
+    });
+  });
+}
+
+function transactionWithCallback(db, worker, options) {
+  return new Promise((resolve, reject) => {
+    const callback = err => {
+      if (err) return reject(err);
+      resolve();
+    };
+
+    if (options) {
+      db.transaction(worker, options, callback);
+    } else {
+      db.transaction(worker, callback);
+    }
+  });
 }
 
 class TestConnector extends Connector {

@@ -5,21 +5,20 @@
 
 'use strict';
 
-require('should');
-
+const {describe, it} = require('node:test');
+const assert = require('node:assert/strict');
 const DateString = require('../lib/date-string');
 const fmt = require('util').format;
 const inspect = require('util').inspect;
-const os = require('os');
 
 describe('DateString', function() {
   describe('constructor', function() {
     it('should support a valid date string', function() {
       const theDate = '2015-01-01';
       const date = new DateString(theDate);
-      date.should.not.eql(null);
-      date.when.should.eql(theDate);
-      date.toString().should.eql(theDate);
+      assert.notEqual(date, null);
+      assert.equal(date.when, theDate);
+      assert.equal(date.toString(), theDate);
     });
 
     testValidInput('should allow date with time', '2015-01-01 02:00:00');
@@ -36,23 +35,23 @@ describe('DateString', function() {
     it('should update internal date on set', function() {
       const date = new DateString('2015-01-01');
       date.when = '2016-01-01';
-      date.when.should.eql('2016-01-01');
+      assert.equal(date.when, '2016-01-01');
       const d = new Date('2016-01-01');
       // The internal date representation should also be updated!
-      date._date.toString().should.eql(d.toString());
+      assert.equal(date._date.toString(), d.toString());
     });
 
     it('should accept DateString instance', function() {
       const input = new DateString('2015-01-01');
       const inst = new DateString(input);
-      inst.toString().should.equal('2015-01-01');
+      assert.equal(inst.toString(), '2015-01-01');
     });
 
     it('should return custom inspect output', function() {
       const date = new DateString('2015-01-01');
       const result = inspect(date);
-      result.should.not.eql(null);
-      result.should.eql(fmt('DateString ' + inspect({
+      assert.notEqual(result, null);
+      assert.equal(result, fmt('DateString ' + inspect({
         when: date.when,
         _date: date._date,
       })));
@@ -61,24 +60,23 @@ describe('DateString', function() {
     it('should return JSON output', function() {
       const date = new DateString('2015-01-01');
       const result = date.toJSON();
-      result.should.eql(JSON.stringify({when: date.when}));
+      assert.equal(result, JSON.stringify({when: date.when}));
     });
 
     function testValidInput(msg, val) {
       it(msg, function() {
         const theDate = new DateString(val);
-        theDate.when.should.eql(val);
+        assert.equal(theDate.when, val);
         const d = new Date(val);
-        theDate._date.toString().should.eql(d.toString());
+        assert.equal(theDate._date.toString(), d.toString());
       });
     }
 
     function testInvalidInput(msg, val, err) {
       it(msg, () => {
-        const fn = () => {
-          const theDate = new DateString(val);
-        };
-        fn.should.throw(err);
+        assert.throws(() => {
+          new DateString(val);
+        }, {message: err});
       });
     }
   });

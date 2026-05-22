@@ -4,7 +4,6 @@
 // License text available at https://opensource.org/licenses/MIT
 
 'use strict';
-module.exports = require('should');
 
 /*
  if (!process.env.TRAVIS) {
@@ -18,8 +17,17 @@ module.exports = require('should');
  }
  */
 
+const {after} = require('node:test');
 const ModelBuilder = require('../').ModelBuilder;
 const Schema = require('../').Schema;
+const registryManager = require('../lib/model-registry').registryManager;
+
+// Stop the registry cleanup interval during tests so node:test can exit cleanly.
+registryManager.stopPeriodicCleanup();
+
+after(function() {
+  registryManager.stopPeriodicCleanup();
+});
 
 if (!('getSchema' in global)) {
   global.getSchema = function(connector, settings) {

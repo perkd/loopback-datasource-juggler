@@ -5,7 +5,8 @@
 
 // This test written in mocha+should.js
 'use strict';
-const should = require('./init.js');
+const {beforeEach, describe, it} = require('node:test');
+const assert = require('node:assert/strict');
 
 const jdb = require('../');
 const ModelBuilder = jdb.ModelBuilder;
@@ -74,8 +75,8 @@ describe('Model class', function() {
 
     const properties = Item.definition.properties;
 
-    properties.street.should.eql({type: String, required: true});
-    properties.city.should.eql({type: String, required: true});
+    assert.deepStrictEqual(properties.street, {type: String, required: true});
+    assert.deepStrictEqual(properties.city, {type: String, required: true});
   });
 
   it('should fail to apply an undefined mixin class', function() {
@@ -85,10 +86,10 @@ describe('Model class', function() {
         mixins: {UndefinedMixin: true},
       });
     }
-    should.throws(applyMixin, 'failed to apply undefined mixin class');
+    assert.throws(applyMixin, /uses unknown mixin: UndefinedMixin/);
   });
 
-  it('should apply mixins', function(done) {
+  it('should apply mixins', async function() {
     const memory = new DataSource('mem', {connector: Memory}, modelBuilder);
     const Item = memory.createModel('Item', {name: 'string'}, {
       mixins: {
@@ -103,21 +104,19 @@ describe('Model class', function() {
 
     Item.mixin('Example', {foo: 'bar'});
 
-    Item.demoMixin.should.be.true;
+    assert.strictEqual(Item.demoMixin, true);
 
-    Item.multiMixin.foo.should.equal('bar');
-    Item.multiMixin.fox.should.equal('baz');
+    assert.strictEqual(Item.multiMixin.foo, 'bar');
+    assert.strictEqual(Item.multiMixin.fox, 'baz');
 
     const properties = Item.definition.properties;
-    properties.createdAt.should.eql({type: Date});
-    properties.updatedAt.should.eql({type: Date});
+    assert.deepStrictEqual(properties.createdAt, {type: Date});
+    assert.deepStrictEqual(properties.updatedAt, {type: Date});
 
-    Item.create({name: 'Item 1'}, function(err, inst) {
-      inst.createdAt.should.be.a.date;
-      inst.updatedAt.should.be.a.date;
-      inst.example().should.eql({foo: 'bar'});
-      done();
-    });
+    const inst = await Item.create({name: 'Item 1'});
+    assert.ok(inst.createdAt instanceof Date);
+    assert.ok(inst.updatedAt instanceof Date);
+    assert.deepStrictEqual(inst.example(), {foo: 'bar'});
   });
 
   it('should fail to apply undefined mixin', function() {
@@ -127,7 +126,7 @@ describe('Model class', function() {
     function applyMixin() {
       Item.mixin('UndefinedMixin', {foo: 'bar'});
     }
-    should.throws(applyMixin, 'failed to apply undefined mixin');
+    assert.throws(applyMixin, /uses unknown mixin: UndefinedMixin/);
   });
 
   describe('#mixin()', function() {
@@ -145,18 +144,18 @@ describe('Model class', function() {
 
     it('should register mixin class into _mixins', function() {
       Person.mixin(Address);
-      Person._mixins.should.containEql(Address);
+      assert.ok(Person._mixins.includes(Address));
     });
 
     it('should NOT share mixins registry', function() {
       Person.mixin(Address);
-      Author._mixins.should.not.containEql(Address);
+      assert.ok(!Author._mixins.includes(Address));
     });
 
     it('should able to mixin same class', function() {
       Person.mixin(Address);
       Author.mixin(Address);
-      Author._mixins.should.containEql(Address);
+      assert.ok(Author._mixins.includes(Address));
     });
   });
 });

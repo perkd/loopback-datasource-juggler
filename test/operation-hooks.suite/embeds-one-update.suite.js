@@ -5,6 +5,9 @@
 
 'use strict';
 
+const assert = require('node:assert/strict');
+const {beforeEach, describe, it} = require('node:test');
+
 const ValidationError = require('../..').ValidationError;
 
 const contextTestHelpers = require('../helpers/context-test-helpers');
@@ -15,6 +18,7 @@ const uid = require('../helpers/uid-generator');
 const HookMonitor = require('../helpers/hook-monitor');
 
 module.exports = function(dataSource, should, connectorCapabilities) {
+  void should;
   describe('EmbedsOne - update', function() {
     let ctxRecorder, hookMonitor, expectedError;
     beforeEach(function setupHelpers() {
@@ -70,7 +74,7 @@ module.exports = function(dataSource, should, connectorCapabilities) {
 
     it('triggers hooks in the correct order', function() {
       return callUpdate().then(function(result) {
-        hookMonitor.names.should.eql([
+        assert.deepStrictEqual(hookMonitor.names, [
           'Embedded:before save',
           // TODO 'Embedded:persist',
           'Owner:before save',
@@ -86,7 +90,7 @@ module.exports = function(dataSource, should, connectorCapabilities) {
     it('trigers `before save` hook on embedded model', function() {
       Embedded.observe('before save', ctxRecorder.recordAndNext());
       return callUpdate().then(function(instance) {
-        ctxRecorder.records.should.eql(aCtxForModel(Embedded, {
+        assert.deepStrictEqual(ctxRecorder.records, aCtxForModel(Embedded, {
           currentInstance: {
             id: instance.id,
             name: 'created',
@@ -101,7 +105,7 @@ module.exports = function(dataSource, should, connectorCapabilities) {
     });
 
     // TODO
-    it('trigers `before save` hook on owner model');
+    it('trigers `before save` hook on owner model', {skip: 'TODO'}, function() {});
 
     it('applies updates from `before save` hook', function() {
       Embedded.observe('before save', function(ctx, next) {
@@ -109,41 +113,41 @@ module.exports = function(dataSource, should, connectorCapabilities) {
         next();
       });
       return callUpdate().then(function(instance) {
-        instance.should.have.property('extra', 'hook data');
+        assert.strictEqual(instance.extra, 'hook data');
       });
     });
 
     it('validates model after `before save` hook', function() {
       Embedded.observe('before save', invalidateEmbeddedModel);
       return callUpdate().then(throwShouldHaveFailed, function(err) {
-        err.should.be.instanceOf(ValidationError);
-        (err.details.codes || {}).should.eql({name: ['presence']});
+        assert.ok(err instanceof ValidationError);
+        assert.deepStrictEqual(err.details.codes || {}, {name: ['presence']});
       });
     });
 
     it('aborts when `before save` hook fails', function() {
       Embedded.observe('before save', nextWithError(expectedError));
       return callUpdate().then(throwShouldHaveFailed, function(err) {
-        err.should.eql(expectedError);
+        assert.strictEqual(err, expectedError);
       });
     });
 
     // TODO
-    it('triggers `persist` hook on embedded model');
-    it('triggers `persist` hook on owner model');
-    it('applies updates from `persist` hook');
-    it('aborts when `persist` hook fails');
+    it('triggers `persist` hook on embedded model', {skip: 'TODO'}, function() {});
+    it('triggers `persist` hook on owner model', {skip: 'TODO'}, function() {});
+    it('applies updates from `persist` hook', {skip: 'TODO'}, function() {});
+    it('aborts when `persist` hook fails', {skip: 'TODO'}, function() {});
 
     // TODO
-    it('triggers `loaded` hook on embedded model');
-    it('triggers `loaded` hook on owner model');
-    it('applies updates from `loaded` hook');
-    it('aborts when `loaded` hook fails');
+    it('triggers `loaded` hook on embedded model', {skip: 'TODO'}, function() {});
+    it('triggers `loaded` hook on owner model', {skip: 'TODO'}, function() {});
+    it('applies updates from `loaded` hook', {skip: 'TODO'}, function() {});
+    it('aborts when `loaded` hook fails', {skip: 'TODO'}, function() {});
 
     it('triggers `after save` hook on embedded model', function() {
       Embedded.observe('after save', ctxRecorder.recordAndNext());
       return callUpdate().then(function(instance) {
-        ctxRecorder.records.should.eql(aCtxForModel(Embedded, {
+        assert.deepStrictEqual(ctxRecorder.records, aCtxForModel(Embedded, {
           instance: {
             id: instance.id,
             name: 'updated',
@@ -155,23 +159,23 @@ module.exports = function(dataSource, should, connectorCapabilities) {
     });
 
     // TODO
-    it('triggers `after save` hook on owner model');
+    it('triggers `after save` hook on owner model', {skip: 'TODO'}, function() {});
 
     it('applies updates from `after save` hook', function() {
       Embedded.observe('after save', function(ctx, next) {
-        ctx.instance.should.be.instanceOf(Embedded);
+        assert.ok(ctx.instance instanceof Embedded);
         ctx.instance.extra = 'hook data';
         next();
       });
       return callUpdate().then(function(instance) {
-        instance.should.have.property('extra', 'hook data');
+        assert.strictEqual(instance.extra, 'hook data');
       });
     });
 
     it('aborts when `after save` hook fails', function() {
       Embedded.observe('after save', nextWithError(expectedError));
       return callUpdate().then(throwShouldHaveFailed, function(err) {
-        err.should.eql(expectedError);
+        assert.strictEqual(err, expectedError);
       });
     });
 

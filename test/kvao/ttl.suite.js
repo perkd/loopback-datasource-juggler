@@ -5,8 +5,9 @@
 
 'use strict';
 
+const {beforeEach, describe, it} = require('node:test');
+const assert = require('node:assert/strict');
 const bdd = require('../helpers/bdd-if');
-const should = require('should');
 const helpers = require('./_helpers');
 
 module.exports = function(dataSourceFactory, connectorCapabilities) {
@@ -34,17 +35,19 @@ module.exports = function(dataSourceFactory, connectorCapabilities) {
         )
           .then(() => helpers.delay(SMALL_DELAY))
           .then(function() { return CacheItem.ttl('a-key'); })
-          .then(function(ttl) { ttl.should.be.within(1, INITIAL_TTL); });
+          .then(function(ttl) { assertWithin(ttl, 1, INITIAL_TTL); });
       });
 
     it('gets TTL when key with unexpired TTL exists - Callback API',
-      function(done) {
-        CacheItem.set('a-key', 'a-value', {ttl: INITIAL_TTL}, function(err) {
-          if (err) return done(err);
-          CacheItem.ttl('a-key', function(err, ttl) {
-            if (err) return done(err);
-            ttl.should.be.within(1, INITIAL_TTL);
-            done();
+      function() {
+        return new Promise((resolve, reject) => {
+          CacheItem.set('a-key', 'a-value', {ttl: INITIAL_TTL}, function(err) {
+            if (err) return reject(err);
+            CacheItem.ttl('a-key', function(err, ttl) {
+              if (err) return reject(err);
+              assertWithin(ttl, 1, INITIAL_TTL);
+              resolve();
+            });
           });
         });
       });
@@ -52,7 +55,7 @@ module.exports = function(dataSourceFactory, connectorCapabilities) {
     it('succeeds when key without TTL exists', function() {
       return CacheItem.set('a-key', 'a-value')
         .then(function() { return CacheItem.ttl('a-key'); })
-        .then(function(ttl) { should.not.exist(ttl); });
+        .then(function(ttl) { assert.equal(ttl, undefined); });
     });
 
     it('fails when getting TTL for a key with expired TTL', function() {
@@ -66,8 +69,8 @@ module.exports = function(dataSourceFactory, connectorCapabilities) {
         .then(
           function() { throw new Error('ttl() should have failed'); },
           function(err) {
-            err.message.should.match(/expired-key/);
-            err.should.have.property('statusCode', 404);
+            assert.match(err.message, /expired-key/);
+            assert.equal(err.statusCode, 404);
           },
         );
     });
@@ -76,8 +79,8 @@ module.exports = function(dataSourceFactory, connectorCapabilities) {
       return CacheItem.ttl('key-does-not-exist').then(
         function() { throw new Error('ttl() should have failed'); },
         function(err) {
-          err.message.should.match(/key-does-not-exist/);
-          err.should.have.property('statusCode', 404);
+          assert.match(err.message, /key-does-not-exist/);
+          assert.equal(err.statusCode, 404);
         },
       );
     });
@@ -88,3 +91,7 @@ module.exports = function(dataSourceFactory, connectorCapabilities) {
     }
   });
 };
+
+function assertWithin(value, min, max) {
+  assert.ok(value >= min && value <= max, `${value} is not within ${min}..${max}`);
+}

@@ -4,7 +4,8 @@
 // License text available at https://opensource.org/licenses/MIT
 
 'use strict';
-const assert = require('assert');
+const {describe, it} = require('node:test');
+const assert = require('node:assert/strict');
 const ModelBuilder = require('..').ModelBuilder;
 const DataSource = require('../').DataSource;
 const introspectType = require('../lib/introspection')(ModelBuilder);
@@ -89,7 +90,7 @@ describe('Introspection of model definitions from JSON', function() {
     assert.deepEqual(type.d, ['number']);
   });
 
-  it('should build a model from the introspected schema', function(done) {
+  it('should build a model from the introspected schema', function() {
     const copy = traverse(json).clone();
 
     const schema = introspectType(json);
@@ -103,10 +104,9 @@ describe('Introspection of model definitions from JSON', function() {
     obj = obj.toObject();
 
     assert.deepEqual(obj, copy);
-    done();
   });
 
-  it('should build a model using buildModelFromInstance', function(done) {
+  it('should build a model using buildModelFromInstance', function() {
     const copy = traverse(json).clone();
 
     const builder = new ModelBuilder();
@@ -115,10 +115,9 @@ describe('Introspection of model definitions from JSON', function() {
     let obj = new Model(json);
     obj = obj.toObject();
     assert.deepEqual(obj, copy);
-    done();
   });
 
-  it('should build a model using DataSource.buildModelFromInstance', function(done) {
+  it('should build a model using DataSource.buildModelFromInstance', function() {
     const copy = traverse(json).clone();
 
     const builder = new DataSource('memory');
@@ -130,7 +129,6 @@ describe('Introspection of model definitions from JSON', function() {
     let obj = new Model(json);
     obj = obj.toObject();
     assert.deepEqual(obj, copy);
-    done();
   });
 });
 

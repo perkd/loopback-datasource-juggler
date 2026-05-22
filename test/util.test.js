@@ -4,7 +4,8 @@
 // License text available at https://opensource.org/licenses/MIT
 
 'use strict';
-const should = require('./init.js');
+const {describe, it, before} = require('node:test');
+const assert = require('node:assert/strict');
 const utils = require('../lib/utils');
 const ObjectID = require('bson-objectid');
 const fieldsToArray = utils.fieldsToArray;
@@ -20,7 +21,7 @@ describe('util.fieldsToArray', function() {
     const properties = ['foo', 'bar', 'bat', 'baz'];
     return {
       expect: function(arr) {
-        should.deepEqual(fieldsToArray(fields, properties, excludeUnknown), arr);
+        assert.deepEqual(fieldsToArray(fields, properties, excludeUnknown), arr);
       },
     };
   }
@@ -55,87 +56,84 @@ describe('util.fieldsToArray', function() {
 describe('util.sanitizeQuery', function() {
   it('Remove undefined values from the query object', function() {
     const q1 = {where: {x: 1, y: undefined}};
-    should.deepEqual(sanitizeQuery(q1), {where: {x: 1}});
+    assert.deepEqual(sanitizeQuery(q1), {where: {x: 1}});
 
     const q2 = {where: {x: 1, y: 2}};
-    should.deepEqual(sanitizeQuery(q2), {where: {x: 1, y: 2}});
+    assert.deepEqual(sanitizeQuery(q2), {where: {x: 1, y: 2}});
 
     const q3 = {where: {x: 1, y: {in: [2, undefined]}}};
-    should.deepEqual(sanitizeQuery(q3), {where: {x: 1, y: {in: [2]}}});
+    assert.deepEqual(sanitizeQuery(q3), {where: {x: 1, y: {in: [2]}}});
 
-    should.equal(sanitizeQuery(null), null);
+    assert.equal(sanitizeQuery(null), null);
 
-    should.equal(sanitizeQuery(undefined), undefined);
+    assert.equal(sanitizeQuery(undefined), undefined);
 
-    should.equal(sanitizeQuery('x'), 'x');
+    assert.equal(sanitizeQuery('x'), 'x');
 
     const date = new Date();
     const q4 = {where: {x: 1, y: date}};
-    should.deepEqual(sanitizeQuery(q4), {where: {x: 1, y: date}});
+    assert.deepEqual(sanitizeQuery(q4), {where: {x: 1, y: date}});
 
     // test handling of undefined
     let q5 = {where: {x: 1, y: undefined}};
-    should.deepEqual(sanitizeQuery(q5, 'nullify'), {where: {x: 1, y: null}});
+    assert.deepEqual(sanitizeQuery(q5, 'nullify'), {where: {x: 1, y: null}});
 
     q5 = {where: {x: 1, y: undefined}};
-    should.deepEqual(sanitizeQuery(q5, {normalizeUndefinedInQuery: 'nullify'}), {where: {x: 1, y: null}});
+    assert.deepEqual(sanitizeQuery(q5, {normalizeUndefinedInQuery: 'nullify'}), {where: {x: 1, y: null}});
 
     const q6 = {where: {x: 1, y: undefined}};
-    (function() { sanitizeQuery(q6, 'throw'); }).should.throw(/`undefined` in query/);
+    assert.throws(() => { sanitizeQuery(q6, 'throw'); }, /`undefined` in query/);
   });
 
   it('Report errors for circular or deep query objects', function() {
     const q7 = {where: {x: 1}};
     q7.where.y = q7;
-    (function() { sanitizeQuery(q7); }).should.throw(
-      /The query object is circular/,
-    );
+    assert.throws(() => { sanitizeQuery(q7); },
+      /The query object is circular/);
 
     const q8 = {where: {and: [{and: [{and: [{and: [{and: [{and:
       [{and: [{and: [{and: [{x: 1}]}]}]}]}]}]}]}]}]}};
-    (function() { sanitizeQuery(q8, {maxDepth: 12}); }).should.throw(
-      /The query object exceeds maximum depth 12/,
-    );
+    assert.throws(() => { sanitizeQuery(q8, {maxDepth: 12}); },
+      /The query object exceeds maximum depth 12/);
 
     // maxDepth is default to maximum integer
-    sanitizeQuery(q8).should.eql(q8);
+    assert.deepEqual(sanitizeQuery(q8), q8);
 
     const q9 = {where: {and: [{and: [{and: [{and: [{x: 1}]}]}]}]}};
-    (function() { sanitizeQuery(q8, {maxDepth: 4}); }).should.throw(
-      /The query object exceeds maximum depth 4/,
-    );
+    assert.throws(() => { sanitizeQuery(q8, {maxDepth: 4}); },
+      /The query object exceeds maximum depth 4/);
   });
 
   it('Removed prohibited properties in query objects', function() {
     const q1 = {where: {secret: 'guess'}};
     sanitizeQuery(q1, {prohibitedKeys: ['secret']});
-    q1.where.should.eql({});
+    assert.deepEqual(q1.where, {});
 
     const q2 = {and: [{secret: 'guess'}, {x: 1}]};
     sanitizeQuery(q2, {prohibitedKeys: ['secret']});
-    q2.should.eql({and: [{}, {x: 1}]});
+    assert.deepEqual(q2, {and: [{}, {x: 1}]});
   });
 
   it('should allow proper structured regexp string', () => {
     const q1 = {where: {name: {like: '^J'}}};
-    sanitizeQuery(q1).should.eql({where: {name: {like: '^J'}}});
+    assert.deepEqual(sanitizeQuery(q1), {where: {name: {like: '^J'}}});
   });
 
   it('should properly sanitize regexp string operators', () => {
     const q1 = {where: {name: {like: '['}}};
-    sanitizeQuery(q1).should.eql({where: {name: {like: '\\['}}});
+    assert.deepEqual(sanitizeQuery(q1), {where: {name: {like: '\\['}}});
 
     const q2 = {where: {name: {nlike: '['}}};
-    sanitizeQuery(q2).should.eql({where: {name: {nlike: '\\['}}});
+    assert.deepEqual(sanitizeQuery(q2), {where: {name: {nlike: '\\['}}});
 
     const q3 = {where: {name: {ilike: '['}}};
-    sanitizeQuery(q3).should.eql({where: {name: {ilike: '\\['}}});
+    assert.deepEqual(sanitizeQuery(q3), {where: {name: {ilike: '\\['}}});
 
     const q4 = {where: {name: {nilike: '['}}};
-    sanitizeQuery(q4).should.eql({where: {name: {nilike: '\\['}}});
+    assert.deepEqual(sanitizeQuery(q4), {where: {name: {nilike: '\\['}}});
 
     const q5 = {where: {name: {regexp: '['}}};
-    sanitizeQuery(q5).should.eql({where: {name: {regexp: '\\['}}});
+    assert.deepEqual(sanitizeQuery(q5), {where: {name: {regexp: '\\['}}});
   });
 });
 
@@ -143,57 +141,57 @@ describe('util.parseSettings', function() {
   it('Parse a full url into a settings object', function() {
     const url = 'mongodb://x:y@localhost:27017/mydb?w=2';
     const settings = utils.parseSettings(url);
-    should.equal(settings.hostname, 'localhost');
-    should.equal(settings.port, 27017);
-    should.equal(settings.host, 'localhost');
-    should.equal(settings.user, 'x');
-    should.equal(settings.password, 'y');
-    should.equal(settings.database, 'mydb');
-    should.equal(settings.connector, 'mongodb');
-    should.equal(settings.w, '2');
-    should.equal(settings.url, 'mongodb://x:y@localhost:27017/mydb?w=2');
+    assert.equal(settings.hostname, 'localhost');
+    assert.equal(settings.port, 27017);
+    assert.equal(settings.host, 'localhost');
+    assert.equal(settings.user, 'x');
+    assert.equal(settings.password, 'y');
+    assert.equal(settings.database, 'mydb');
+    assert.equal(settings.connector, 'mongodb');
+    assert.equal(settings.w, '2');
+    assert.equal(settings.url, 'mongodb://x:y@localhost:27017/mydb?w=2');
   });
 
   it('Parse a url without auth into a settings object', function() {
     const url = 'mongodb://localhost:27017/mydb/abc?w=2';
     const settings = utils.parseSettings(url);
-    should.equal(settings.hostname, 'localhost');
-    should.equal(settings.port, 27017);
-    should.equal(settings.host, 'localhost');
-    should.equal(settings.user, undefined);
-    should.equal(settings.password, undefined);
-    should.equal(settings.database, 'mydb');
-    should.equal(settings.connector, 'mongodb');
-    should.equal(settings.w, '2');
-    should.equal(settings.url, 'mongodb://localhost:27017/mydb/abc?w=2');
+    assert.equal(settings.hostname, 'localhost');
+    assert.equal(settings.port, 27017);
+    assert.equal(settings.host, 'localhost');
+    assert.equal(settings.user, null);
+    assert.equal(settings.password, null);
+    assert.equal(settings.database, 'mydb');
+    assert.equal(settings.connector, 'mongodb');
+    assert.equal(settings.w, '2');
+    assert.equal(settings.url, 'mongodb://localhost:27017/mydb/abc?w=2');
   });
 
   it('Parse a url with complex query into a settings object', function() {
     const url = 'mysql://127.0.0.1:3306/mydb?x[a]=1&x[b]=2&engine=InnoDB';
     const settings = utils.parseSettings(url);
-    should.equal(settings.hostname, '127.0.0.1');
-    should.equal(settings.port, 3306);
-    should.equal(settings.host, '127.0.0.1');
-    should.equal(settings.user, undefined);
-    should.equal(settings.password, undefined);
-    should.equal(settings.database, 'mydb');
-    should.equal(settings.connector, 'mysql');
-    should.equal(settings.x.a, '1');
-    should.equal(settings.x.b, '2');
-    should.equal(settings.engine, 'InnoDB');
-    should.equal(settings.url, 'mysql://127.0.0.1:3306/mydb?x[a]=1&x[b]=2&engine=InnoDB');
+    assert.equal(settings.hostname, '127.0.0.1');
+    assert.equal(settings.port, 3306);
+    assert.equal(settings.host, '127.0.0.1');
+    assert.equal(settings.user, null);
+    assert.equal(settings.password, null);
+    assert.equal(settings.database, 'mydb');
+    assert.equal(settings.connector, 'mysql');
+    assert.equal(settings.x.a, '1');
+    assert.equal(settings.x.b, '2');
+    assert.equal(settings.engine, 'InnoDB');
+    assert.equal(settings.url, 'mysql://127.0.0.1:3306/mydb?x[a]=1&x[b]=2&engine=InnoDB');
   });
 
   it('Parse a Memory url without auth into a settings object', function() {
     const url = 'memory://?x=1';
     const settings = utils.parseSettings(url);
-    should.equal(settings.hostname, '');
-    should.equal(settings.user, undefined);
-    should.equal(settings.password, undefined);
-    should.equal(settings.database, undefined);
-    should.equal(settings.connector, 'memory');
-    should.equal(settings.x, '1');
-    should.equal(settings.url, 'memory://?x=1');
+    assert.equal(settings.hostname, '');
+    assert.equal(settings.user, null);
+    assert.equal(settings.password, null);
+    assert.equal(settings.database, null);
+    assert.equal(settings.connector, 'memory');
+    assert.equal(settings.x, '1');
+    assert.equal(settings.url, 'memory://?x=1');
   });
 });
 
@@ -265,7 +263,7 @@ describe('util.deepMerge', function() {
         foreignKey: 'userId'},
       account: {model: 'account', type: 'belongsTo'}}};
 
-    should.deepEqual(merged, expected, 'Merged objects should match the expectation');
+    assert.deepEqual(merged, expected, 'Merged objects should match the expectation');
   });
 });
 
@@ -280,7 +278,7 @@ describe('util.rankArrayElements', function() {
 
     const rankedAcls = rankArrayElements(acls, 2);
 
-    should.equal(rankedAcls[0].__rank, 2);
+    assert.equal(rankedAcls[0].__rank, 2);
   });
 
   it('should not replace existing \'__rank\' property of array elements', function() {
@@ -295,7 +293,7 @@ describe('util.rankArrayElements', function() {
 
     const rankedAcls = rankArrayElements(acls, 2);
 
-    should.equal(rankedAcls[0].__rank, 1);
+    assert.equal(rankedAcls[0].__rank, 1);
   });
 });
 
@@ -312,26 +310,26 @@ describe('util.sortObjectsByIds', function() {
   it('should sort', function() {
     const sorted = sortObjectsByIds('id', [6, 5, 4, 3, 2, 1], items);
     const names = sorted.map(function(u) { return u.name; });
-    should.deepEqual(names, ['f', 'e', 'd', 'c', 'b', 'a']);
+    assert.deepEqual(names, ['f', 'e', 'd', 'c', 'b', 'a']);
   });
 
   it('should sort - partial ids', function() {
     const sorted = sortObjectsByIds('id', [5, 3, 2], items);
     const names = sorted.map(function(u) { return u.name; });
-    should.deepEqual(names, ['e', 'c', 'b', 'a', 'd', 'f']);
+    assert.deepEqual(names, ['e', 'c', 'b', 'a', 'd', 'f']);
   });
 
   it('should sort - strict', function() {
     const sorted = sortObjectsByIds('id', [5, 3, 2], items, true);
     const names = sorted.map(function(u) { return u.name; });
-    should.deepEqual(names, ['e', 'c', 'b']);
+    assert.deepEqual(names, ['e', 'c', 'b']);
   });
 });
 
 describe('util.mergeIncludes', function() {
   function checkInputOutput(baseInclude, updateInclude, expectedInclude) {
     const mergedInclude = mergeIncludes(baseInclude, updateInclude);
-    should.deepEqual(mergedInclude, expectedInclude,
+    assert.deepEqual(mergedInclude, expectedInclude,
       'Merged include should match the expectation');
   }
 
@@ -473,13 +471,13 @@ describe('util.uniq', function() {
   it('should dedupe an array with duplicate number entries', function() {
     const a = [1, 2, 1, 3];
     const b = uniq(a);
-    b.should.eql([1, 2, 3]);
+    assert.deepEqual(b, [1, 2, 3]);
   });
 
   it('should dedupe an array with duplicate string entries', function() {
     const a = ['a', 'a', 'b', 'a'];
     const b = uniq(a);
-    b.should.eql(['a', 'b']);
+    assert.deepEqual(b, ['a', 'b']);
   });
 
   it('should dedupe an array with duplicate bson entries', function() {
@@ -488,19 +486,19 @@ describe('util.uniq', function() {
     const a = [idOne, idTwo, ObjectID('59f9ec5dc7d59a00042f7c62'),
       ObjectID('59f9ec5dc7d59a00042f7c62')];
     const b = uniq(a);
-    b.should.eql([idOne, idTwo]);
+    assert.deepEqual(b, [idOne, idTwo]);
   });
 
   it('should dedupe an array without duplicate number entries', function() {
     const a = [1, 3, 2];
     const b = uniq(a);
-    b.should.eql([1, 3, 2]);
+    assert.deepEqual(b, [1, 3, 2]);
   });
 
   it('should dedupe an array without duplicate string entries', function() {
     const a = ['a', 'c', 'b'];
     const b = uniq(a);
-    b.should.eql(['a', 'c', 'b']);
+    assert.deepEqual(b, ['a', 'c', 'b']);
   });
 
   it('should dedupe an array without duplicate bson entries', function() {
@@ -509,13 +507,13 @@ describe('util.uniq', function() {
     const idThree = ObjectID('59f9ec5dc7d59a00042f7c64');
     const a = [idOne, idTwo, idThree];
     const b = uniq(a);
-    b.should.eql([idOne, idTwo, idThree]);
+    assert.deepEqual(b, [idOne, idTwo, idThree]);
   });
 
   it('should allow null/undefined array', function() {
     const a = null;
     const b = uniq(a);
-    b.should.eql([]);
+    assert.deepEqual(b, []);
   });
 
   it('should report error for non-array arg', function() {
@@ -524,7 +522,7 @@ describe('util.uniq', function() {
       const b = uniq(a);
       throw new Error('The test should have thrown an error');
     } catch (err) {
-      err.should.be.instanceof(Error);
+      assert.ok(err instanceof Error);
     }
   });
 });
@@ -540,111 +538,111 @@ describe('util.toRegExp', function() {
 
   it('should not accept invalid data types', function() {
     invalidDataTypes.forEach(function(invalid) {
-      utils.toRegExp(invalid).should.be.an.Error;
+      assert.ok(utils.toRegExp(invalid) instanceof Error);
     });
   });
 
   it('should accept valid data types', function() {
     validDataTypes.forEach(function(valid) {
-      utils.toRegExp(valid).should.not.be.an.Error;
+      assert.equal(utils.toRegExp(valid) instanceof Error, false);
     });
   });
 
-  context('with a regex string', function() {
+  describe('with a regex string', function() {
     it('should return a RegExp object when no regex flags are provided',
       function() {
-        utils.toRegExp('^regex$').should.be.an.instanceOf(RegExp);
+        assert.ok(utils.toRegExp('^regex$') instanceof RegExp);
       });
 
     it('should throw an error when invalid regex flags are provided',
       function() {
-        utils.toRegExp('^regex$/abc').should.be.an.Error;
+        assert.ok(utils.toRegExp('^regex$/abc') instanceof Error);
       });
 
     it('should return a RegExp object when valid flags are provided',
       function() {
-        utils.toRegExp('regex/igm').should.be.an.instanceOf(RegExp);
+        assert.ok(utils.toRegExp('regex/igm') instanceof RegExp);
       });
   });
 
-  context('with a regex literal', function() {
+  describe('with a regex literal', function() {
     it('should return a RegExp object', function() {
-      utils.toRegExp(/^regex$/igm).should.be.an.instanceOf(RegExp);
+      assert.ok(utils.toRegExp(/^regex$/igm) instanceof RegExp);
     });
   });
 
-  context('with a regex object', function() {
+  describe('with a regex object', function() {
     it('should return a RegExp object', function() {
-      utils.toRegExp(new RegExp('^regex$', 'igm')).should.be.an.instanceOf(RegExp);
+      assert.ok(utils.toRegExp(new RegExp('^regex$', 'igm')) instanceof RegExp);
     });
   });
 });
 
 describe('util.hasRegExpFlags', function() {
-  context('with a regex string', function() {
+  describe('with a regex string', function() {
     it('should be true when the regex has invalid flags', function() {
-      utils.hasRegExpFlags('^regex$/abc').should.be.ok;
+      assert.ok(utils.hasRegExpFlags('^regex$/abc'));
     });
 
     it('should be true when the regex has valid flags', function() {
-      utils.hasRegExpFlags('^regex$/igm').should.be.ok;
+      assert.ok(utils.hasRegExpFlags('^regex$/igm'));
     });
 
     it('should be false when the regex has no flags', function() {
-      utils.hasRegExpFlags('^regex$').should.not.be.ok;
-      utils.hasRegExpFlags('^regex$/').should.not.be.ok;
+      assert.equal(utils.hasRegExpFlags('^regex$'), false);
+      assert.equal(utils.hasRegExpFlags('^regex$/'), false);
     });
   });
 
-  context('with a regex literal', function() {
+  describe('with a regex literal', function() {
     it('should be true when the regex has valid flags', function() {
-      utils.hasRegExpFlags(/^regex$/igm).should.be.ok;
+      assert.ok(utils.hasRegExpFlags(/^regex$/igm));
     });
 
     it('should be false when the regex has no flags', function() {
-      utils.hasRegExpFlags(/^regex$/).should.not.be.ok;
+      assert.ok(!utils.hasRegExpFlags(/^regex$/));
     });
   });
 
-  context('with a regex object', function() {
+  describe('with a regex object', function() {
     it('should be true when the regex has valid flags', function() {
-      utils.hasRegExpFlags(new RegExp(/^regex$/igm)).should.be.ok;
+      assert.ok(utils.hasRegExpFlags(new RegExp(/^regex$/igm)));
     });
 
     it('should be false when the regex has no flags', function() {
-      utils.hasRegExpFlags(new RegExp(/^regex$/)).should.not.be.ok;
+      assert.ok(!utils.hasRegExpFlags(new RegExp(/^regex$/)));
     });
   });
 });
 
 describe('util.idsHaveDuplicates', function() {
-  context('with string IDs', function() {
+  describe('with string IDs', function() {
     it('should be true with a duplicate present', function() {
-      utils.idsHaveDuplicates(['a', 'b', 'a']).should.be.ok;
+      assert.ok(utils.idsHaveDuplicates(['a', 'b', 'a']));
     });
 
     it('should be false when no duplicates are present', function() {
-      utils.idsHaveDuplicates(['a', 'b', 'c']).should.not.be.ok;
+      assert.equal(utils.idsHaveDuplicates(['a', 'b', 'c']), false);
     });
   });
 
-  context('with numeric IDs', function() {
+  describe('with numeric IDs', function() {
     it('should be true with a duplicate present', function() {
-      utils.idsHaveDuplicates([1, 2, 1]).should.be.ok;
+      assert.ok(utils.idsHaveDuplicates([1, 2, 1]));
     });
 
     it('should be false when no duplicates are present', function() {
-      utils.idsHaveDuplicates([1, 2, 3]).should.not.be.ok;
+      assert.equal(utils.idsHaveDuplicates([1, 2, 3]), false);
     });
   });
 
-  context('with complex IDs', function() {
+  describe('with complex IDs', function() {
     it('should be true with a duplicate present', function() {
-      utils.idsHaveDuplicates(['a', 'b', 'a'].map(id => ({id}))).should.be.ok;
+      assert.ok(utils.idsHaveDuplicates(['a', 'b', 'a'].map(id => ({id}))));
     });
 
     it('should be false when no duplicates are present', function() {
-      utils.idsHaveDuplicates(['a', 'b', 'c'].map(id => ({id}))).should.not.be.ok;
+      assert.equal(utils.idsHaveDuplicates(['a', 'b', 'c'].map(id => ({id}))), false);
     });
   });
 });

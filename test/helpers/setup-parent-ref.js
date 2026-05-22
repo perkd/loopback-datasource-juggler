@@ -1,6 +1,7 @@
 'use strict';
 
-const assert = require('assert');
+const assert = require('node:assert/strict');
+const {beforeEach, afterEach} = require('node:test');
 
 /**
  * Helper function that when called should return the current instance of the modelBuilder
@@ -9,14 +10,14 @@ const assert = require('assert');
 const createTestSetupForParentRef = (getBuilder) => {
   assert.strictEqual(typeof getBuilder, 'function', 'Missing getter function for model builder');
   const settingProperty = 'parentRef';
-  beforeEach('enabling parentRef for given modelBuilder', () => {
+  beforeEach(() => {
     const modelBuilder = getBuilder();
-    assert(modelBuilder && typeof modelBuilder === 'object', 'Invalid modelBuilder instance');
+    assert.ok(modelBuilder && typeof modelBuilder === 'object', 'Invalid modelBuilder instance');
     modelBuilder.settings[settingProperty] = true;
   });
-  afterEach('Disabling parentRef for given modelBuilder', () => {
+  afterEach(() => {
     const modelBuilder = getBuilder();
-    assert(modelBuilder && typeof modelBuilder === 'object', 'Invalid modelBuilder instance');
+    assert.ok(modelBuilder && typeof modelBuilder === 'object', 'Invalid modelBuilder instance');
     modelBuilder.settings[settingProperty] = false;
   });
 };

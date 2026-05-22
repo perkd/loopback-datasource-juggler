@@ -5,8 +5,9 @@
 
 'use strict';
 
+const {beforeEach, describe, it} = require('node:test');
+const assert = require('node:assert/strict');
 const bdd = require('../helpers/bdd-if');
-const should = require('should');
 const helpers = require('./_helpers');
 
 module.exports = function(dataSourceFactory, connectorCapabilities) {
@@ -20,18 +21,20 @@ module.exports = function(dataSourceFactory, connectorCapabilities) {
     let CacheItem;
     beforeEach(setupCacheItem);
 
-    it('sets key ttl - Callback API', function(done) {
-      CacheItem.set('a-key', 'a-value', function(err) {
-        if (err) return done(err);
-        CacheItem.expire('a-key', ttlPrecision, function(err) {
-          if (err) return done(err);
-          setTimeout(function() {
-            CacheItem.get('a-key', function(err, value) {
-              if (err) return done(err);
-              should.equal(value, null);
-              done();
-            });
-          }, 2 * ttlPrecision);
+    it('sets key ttl - Callback API', function() {
+      return new Promise((resolve, reject) => {
+        CacheItem.set('a-key', 'a-value', function(err) {
+          if (err) return reject(err);
+          CacheItem.expire('a-key', ttlPrecision, function(err) {
+            if (err) return reject(err);
+            setTimeout(function() {
+              CacheItem.get('a-key', function(err, value) {
+                if (err) return reject(err);
+                assert.equal(value, null);
+                resolve();
+              });
+            }, 2 * ttlPrecision);
+          });
         });
       });
     });
@@ -41,7 +44,7 @@ module.exports = function(dataSourceFactory, connectorCapabilities) {
         .then(function() { return CacheItem.expire('a-key', ttlPrecision); })
         .then(() => helpers.delay(2 * ttlPrecision))
         .then(function() { return CacheItem.get('a-key'); })
-        .then(function(value) { should.equal(value, null); });
+        .then(function(value) { assert.equal(value, null); });
     });
 
     it('returns error when expiring a key that has expired', function() {
@@ -51,8 +54,8 @@ module.exports = function(dataSourceFactory, connectorCapabilities) {
         .then(
           function() { throw new Error('expire() should have failed'); },
           function(err) {
-            err.message.should.match(/expired-key/);
-            err.should.have.property('statusCode', 404);
+            assert.match(err.message, /expired-key/);
+            assert.equal(err.statusCode, 404);
           },
         );
     });
@@ -61,8 +64,8 @@ module.exports = function(dataSourceFactory, connectorCapabilities) {
       return CacheItem.expire('key-does-not-exist', ttlPrecision).then(
         function() { throw new Error('expire() should have failed'); },
         function(err) {
-          err.message.should.match(/key-does-not-exist/);
-          err.should.have.property('statusCode', 404);
+          assert.match(err.message, /key-does-not-exist/);
+          assert.equal(err.statusCode, 404);
         },
       );
     });

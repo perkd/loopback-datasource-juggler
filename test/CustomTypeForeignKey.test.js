@@ -5,8 +5,8 @@
 
 'use strict';
 
-const should = require('./init.js');
-
+const {describe, it, before} = require('node:test');
+const assert = require('node:assert/strict');
 const jdb = require('../');
 const DataSource = jdb.DataSource;
 
@@ -35,13 +35,12 @@ describe('Datasource-specific field types for foreign keys', function() {
     });
   });
 
-  it('should create foreign key with database-specific field type', function(done) {
+  it('should create foreign key with database-specific field type', function() {
     const VariantDefinition = ds.getModelDefinition('Variant');
-    should.exist(VariantDefinition);
-    should.exist(VariantDefinition.properties.myProp.memory);
-    should.exist(VariantDefinition.properties.myProp.memory.dataType);
-    VariantDefinition.properties.myProp.memory.dataType.should.be.equal('string');
-    done();
+    assert.ok(VariantDefinition);
+    assert.ok(VariantDefinition.properties.myProp.memory);
+    assert.ok(VariantDefinition.properties.myProp.memory.dataType);
+    assert.equal(VariantDefinition.properties.myProp.memory.dataType, 'string');
   });
 })
 ;

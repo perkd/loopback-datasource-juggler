@@ -5,6 +5,7 @@
 
 'use strict';
 
+const {describe} = require('node:test');
 const debug = require('debug')('test');
 
 const fs = require('fs');

@@ -69,7 +69,6 @@ Object.defineProperty(module.exports, 'skip', {
   value: skip,
 });
 
-/* eslint-disable mocha/handle-done-callback */
 function testOrm(dataSource) {
   const requestsAreCounted = dataSource.name !== 'mongodb';
 
@@ -500,7 +499,6 @@ function testOrm(dataSource) {
     });
   });
 
-  /* eslint-disable max-len */
   it('hasMany should be cached', function(test) {
     // User.create(function (e, u) {
     //    u.posts.create({}, function (e, p) {
@@ -564,7 +562,6 @@ function testOrm(dataSource) {
       }
     });
   });
-  /* eslint-enable max-len */
 
   // it('should handle hasOne relationship', function (test) {
   //     User.create(function (err, u) {

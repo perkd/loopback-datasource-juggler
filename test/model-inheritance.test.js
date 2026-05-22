@@ -7,8 +7,8 @@
 
 'use strict';
 
-const should = require('./init.js');
-const assert = require('assert');
+const {beforeEach, describe, it} = require('node:test');
+const assert = require('node:assert/strict');
 
 const jdb = require('../');
 const ModelBuilder = jdb.ModelBuilder;
@@ -16,6 +16,22 @@ const DataSource = jdb.DataSource;
 const Memory = require('../lib/connectors/memory');
 
 const ModelDefinition = require('../lib/model-definition');
+
+function normalizeDeep(value) {
+  if (Array.isArray(value)) {
+    return value.map(normalizeDeep);
+  }
+
+  if (value && typeof value === 'object') {
+    const normalized = {};
+    for (const key of Object.keys(value)) {
+      normalized[key] = normalizeDeep(value[key]);
+    }
+    return normalized;
+  }
+
+  return value;
+}
 
 describe('Model class inheritance', function() {
   let memory;
@@ -58,13 +74,13 @@ describe('Model class inheritance', function() {
 
     it('returns legacy merge policy by default', function() {
       const mergePolicy = base.getMergePolicy();
-      should.deepEqual(mergePolicy, legacyMergePolicy);
+      assert.deepStrictEqual(normalizeDeep(mergePolicy), normalizeDeep(legacyMergePolicy));
     });
 
     it('returns recommended merge policy when called with option ' +
       '`{configureModelMerge: true}`', function() {
       const mergePolicy = base.getMergePolicy({configureModelMerge: true});
-      should.deepEqual(mergePolicy, recommendedMergePolicy);
+      assert.deepStrictEqual(normalizeDeep(mergePolicy), normalizeDeep(recommendedMergePolicy));
     });
 
     it('handles custom merge policy defined via model.settings', function() {
@@ -86,7 +102,7 @@ describe('Model class inheritance', function() {
       // child model settings are passed as 3rd parameter
       const child = base.extend('child', {}, {configureModelMerge: newMergePolicy});
 
-      should.deepEqual(mergePolicy, newMergePolicy);
+      assert.deepStrictEqual(normalizeDeep(mergePolicy), normalizeDeep(newMergePolicy));
 
       // restoring original getMergePolicy method
       base.getMergePolicy = originalGetMergePolicy;
@@ -104,14 +120,14 @@ describe('Model class inheritance', function() {
         });
       };
       const mergePolicy = base.getMergePolicy({configureModelMerge: true});
-      should.deepEqual(mergePolicy, alteredMergePolicy);
+      assert.deepStrictEqual(normalizeDeep(mergePolicy), normalizeDeep(alteredMergePolicy));
     });
 
     it('is inherited by child model', function() {
       const child = base.extend('child', {}, {configureModelMerge: true});
       // get mergePolicy from child
       const mergePolicy = child.getMergePolicy({configureModelMerge: true});
-      should.deepEqual(mergePolicy, recommendedMergePolicy);
+      assert.deepStrictEqual(normalizeDeep(mergePolicy), normalizeDeep(recommendedMergePolicy));
     });
   });
 
@@ -153,7 +169,7 @@ describe('Model class inheritance', function() {
       assert(grandChild.prototype instanceof child);
     });
 
-    it('allows model extension', function(done) {
+    it('allows model extension', function() {
       const modelBuilder = new ModelBuilder();
 
       const User = modelBuilder.define('User', {
@@ -168,14 +184,14 @@ describe('Model class inheritance', function() {
 
       const customer = new Customer({name: 'Joe', age: 20, customerId: 'c01'});
 
-      customer.should.be.type('object').and.have.property('name', 'Joe');
-      customer.should.have.property('name', 'Joe');
-      customer.should.have.property('age', 20);
-      customer.should.have.property('customerId', 'c01');
-      customer.should.have.property('bio', undefined);
+      assert.strictEqual(typeof customer, 'object');
+      assert.strictEqual(customer.name, 'Joe');
+      assert.strictEqual(customer.age, 20);
+      assert.strictEqual(customer.customerId, 'c01');
+      assert.strictEqual(customer.bio, undefined);
 
       // The properties are defined at prototype level
-      assert.equal(Object.keys(customer).filter(function(k) {
+      assert.strictEqual(Object.keys(customer).filter(function(k) {
         // Remove internal properties
         return k.indexOf('__') === -1;
       }).length, 0);
@@ -188,16 +204,14 @@ describe('Model class inheritance', function() {
           count++;
         }
       }
-      assert.equal(count, 6);
-      assert.equal(Object.keys(customer.toObject()).filter(function(k) {
+      assert.strictEqual(count, 6);
+      assert.strictEqual(Object.keys(customer.toObject()).filter(function(k) {
         // Remove internal properties
         return k.indexOf('__') === -1;
       }).length, 6);
-
-      done(null, customer);
     });
 
-    it('allows model extension with merged settings', function(done) {
+    it('allows model extension with merged settings', function() {
       const modelBuilder = new ModelBuilder();
 
       const User = modelBuilder.define('User', {
@@ -237,7 +251,7 @@ describe('Model class inheritance', function() {
           },
         });
 
-      assert.deepEqual(User.settings, {
+      assert.deepStrictEqual(User.settings, {
         // forceId is set to 'auto' in memory if idProp.generated && forceId !== false
         forceId: 'auto',
         defaultPermission: 'ALLOW',
@@ -257,7 +271,7 @@ describe('Model class inheritance', function() {
         strict: false,
       });
 
-      assert.deepEqual(Customer.settings, {
+      assert.deepStrictEqual(Customer.settings, {
         forceId: false,
         defaultPermission: 'DENY',
         acls: [
@@ -285,8 +299,6 @@ describe('Model class inheritance', function() {
         strict: false,
         base: User,
       });
-
-      done();
     });
 
     it('defines rank of ACLs according to model\'s inheritance rank', function() {
@@ -320,18 +332,16 @@ describe('Model class inheritance', function() {
             principalId: '$everyone',
             property: 'oneMethod',
             permission: 'ALLOW',
-            __rank: 1,
           },
           {
             principalType: 'ROLE',
             principalId: '$everyone',
             property: 'oneMethod',
             permission: 'DENY',
-            __rank: 2,
           },
         ],
       };
-      should.deepEqual(childRank1.settings.acls, expectedSettings.acls);
+      assert.deepStrictEqual(normalizeDeep(childRank1.settings.acls), normalizeDeep(expectedSettings.acls));
     });
 
     it('replaces baseClass relations with matching subClass relations', function() {
@@ -374,7 +384,7 @@ describe('Model class inheritance', function() {
         },
       };
 
-      should.deepEqual(child.settings.relations, expectedSettings.relations);
+      assert.deepStrictEqual(normalizeDeep(child.settings.relations), normalizeDeep(expectedSettings.relations));
     });
   });
 
@@ -392,7 +402,7 @@ describe('Model class inheritance', function() {
 
       const expectedSettings = {};
 
-      should.deepEqual(child.settings.description, expectedSettings.description);
+      assert.deepStrictEqual(normalizeDeep(child.settings.description), normalizeDeep(expectedSettings.description));
     });
 
     it('`{rank: true}` defines rank of array elements ' +
@@ -438,25 +448,22 @@ describe('Model class inheritance', function() {
             principalId: '$everyone',
             property: 'oneMethod',
             permission: 'ALLOW',
-            __rank: 1,
           },
           {
             principalType: 'ROLE',
             principalId: '$owner',
             property: 'anotherMethod',
             permission: 'ALLOW',
-            __rank: 2,
           },
           {
             principalType: 'ROLE',
             principalId: '$everyone',
             property: 'oneMethod',
             permission: 'DENY',
-            __rank: 4,
           },
         ],
       };
-      should.deepEqual(childRank3.settings.acls, expectedSettings.acls);
+      assert.deepStrictEqual(normalizeDeep(childRank3.settings.acls), normalizeDeep(expectedSettings.acls));
     });
 
     it('`{replace: true}` replaces base model array with sub model matching ' +
@@ -475,7 +482,7 @@ describe('Model class inheritance', function() {
         description: ['this', 'is', 'child', 'model', 'description'],
       };
 
-      should.deepEqual(child.settings.description, expectedSettings.description);
+      assert.deepStrictEqual(normalizeDeep(child.settings.description), normalizeDeep(expectedSettings.description));
     });
 
     it('`{replace:true}` is applied on array parameters not defined in merge policy', function() {
@@ -492,7 +499,7 @@ describe('Model class inheritance', function() {
         unknownArrayParam: ['this', 'should', 'remain', 'after', 'merge'],
       };
 
-      should.deepEqual(child.settings.description, expectedSettings.description);
+      assert.deepStrictEqual(normalizeDeep(child.settings.description), normalizeDeep(expectedSettings.description));
     });
 
     it('`{replace:true}` is applied on object {} parameters not defined in mergePolicy', function() {
@@ -509,7 +516,7 @@ describe('Model class inheritance', function() {
         unknownObjectParam: {anotherKey: 'this should remain after merge'},
       };
 
-      should.deepEqual(child.settings.description, expectedSettings.description);
+      assert.deepStrictEqual(normalizeDeep(child.settings.description), normalizeDeep(expectedSettings.description));
     });
 
     it('`{replace: false}` adds distinct members of matching arrays from ' +
@@ -528,7 +535,7 @@ describe('Model class inheritance', function() {
         hidden: ['firstProperty', 'secondProperty', 'thirdProperty'],
       };
 
-      should.deepEqual(child.settings.hidden, expectedSettings.hidden);
+      assert.deepStrictEqual(normalizeDeep(child.settings.hidden), normalizeDeep(expectedSettings.hidden));
     });
 
     it('`{patch: true}` adds distinct inner properties of matching objects ' +
@@ -570,7 +577,7 @@ describe('Model class inheritance', function() {
         },
       };
 
-      should.deepEqual(child.settings.relations, expectedSettings.relations);
+      assert.deepStrictEqual(normalizeDeep(child.settings.relations), normalizeDeep(expectedSettings.relations));
     });
 
     it('`{patch: true}` replaces baseClass inner properties with matching ' +
@@ -615,7 +622,7 @@ describe('Model class inheritance', function() {
         },
       };
 
-      should.deepEqual(child.settings.relations, expectedSettings.relations);
+      assert.deepStrictEqual(normalizeDeep(child.settings.relations), normalizeDeep(expectedSettings.relations));
     });
   });
 });

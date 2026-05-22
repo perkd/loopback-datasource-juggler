@@ -4,11 +4,11 @@
 // License text available at https://opensource.org/licenses/MIT
 
 'use strict';
+const {before, describe, it} = require('node:test');
+const assert = require('node:assert/strict');
+
 const jdb = require('../');
 const DataSource = jdb.DataSource;
-const assert = require('assert');
-const async = require('async');
-const should = require('./init.js');
 
 let db, TransientModel, Person, Widget, Item;
 
@@ -30,56 +30,39 @@ describe('Transient connector', function() {
     });
   });
 
-  it('should respect idInjection being false', function(done) {
-    should.not.exist(Person.definition.properties.id);
-    should.exist(Person.definition.properties.name);
+  it('should respect idInjection being false', async function() {
+    assert.strictEqual(Person.definition.properties.id, undefined);
+    assert.ok(Person.definition.properties.name != null);
 
-    Person.create({name: 'Wilma'}, function(err, inst) {
-      should.not.exist(err);
-      inst.toObject().should.eql({name: 'Wilma'});
+    const inst = await Person.create({name: 'Wilma'});
+    assert.deepStrictEqual(inst.toObject(), {name: 'Wilma'});
 
-      Person.count(function(err, count) {
-        should.not.exist(err);
-        count.should.equal(0);
-        done();
-      });
-    });
+    const count = await Person.count();
+    assert.strictEqual(count, 0);
   });
 
-  it('should generate a random string id', function(done) {
-    should.exist(Widget.definition.properties.id);
-    should.exist(Widget.definition.properties.name);
+  it('should generate a random string id', async function() {
+    assert.ok(Widget.definition.properties.id != null);
+    assert.ok(Widget.definition.properties.name != null);
+    assert.strictEqual(Widget.definition.properties.id.type, String);
 
-    Widget.definition.properties.id.type.should.equal(String);
+    const inst = await Widget.create({name: 'Thing'});
+    assert.match(inst.id, /^[0-9a-fA-F]{24}$/);
+    assert.strictEqual(inst.name, 'Thing');
 
-    Widget.create({name: 'Thing'}, function(err, inst) {
-      should.not.exist(err);
-      inst.id.should.match(/^[0-9a-fA-F]{24}$/);
-      inst.name.should.equal('Thing');
-
-      Widget.findById(inst.id, function(err, widget) {
-        should.not.exist(err);
-        should.not.exist(widget);
-        done();
-      });
-    });
+    const widget = await Widget.findById(inst.id);
+    assert.strictEqual(widget, null);
   });
 
-  it('should generate a random number id', function(done) {
-    should.exist(Item.definition.properties.id);
-    should.exist(Item.definition.properties.name);
+  it('should generate a random number id', async function() {
+    assert.ok(Item.definition.properties.id != null);
+    assert.ok(Item.definition.properties.name != null);
+    assert.strictEqual(Item.definition.properties.id.type, Number);
 
-    Item.definition.properties.id.type.should.equal(Number);
+    const inst = await Item.create({name: 'Example'});
+    assert.strictEqual(inst.name, 'Example');
 
-    Item.create({name: 'Example'}, function(err, inst) {
-      should.not.exist(err);
-      inst.name.should.equal('Example');
-
-      Item.count(function(err, count) {
-        should.not.exist(err);
-        count.should.equal(0);
-        done();
-      });
-    });
+    const count = await Item.count();
+    assert.strictEqual(count, 0);
   });
 });

@@ -5,18 +5,19 @@
 
 'use strict';
 
-const should = require('./init.js');
+const {after, afterEach, beforeEach, describe, it} = require('node:test');
+const assert = require('node:assert/strict');
 const List = require('../lib/list');
 const utils = require('../lib/utils');
 const ModelBuilder = require('../lib/model-builder').ModelBuilder;
 const {ModelRegistry} = require('../lib/model-registry');
 const DataSource = require('../lib/datasource').DataSource;
-const sinon = require('sinon');
 
 describe('Parent Reference Edge Cases', function() {
   let modelBuilder;
   let memory;
-  let sandbox;
+  let originalConsoleWarn;
+  let consoleWarnCalls;
 
   // Save original NODE_ENV
   const originalNodeEnv = process.env.NODE_ENV;
@@ -32,13 +33,15 @@ describe('Parent Reference Edge Cases', function() {
     modelBuilder.settings = modelBuilder.settings || {};
     modelBuilder.settings.parentRef = true;
 
-    // Create a sandbox to capture console warnings
-    sandbox = sinon.createSandbox();
-    sandbox.stub(console, 'warn');
+    originalConsoleWarn = console.warn;
+    consoleWarnCalls = [];
+    console.warn = function(...args) {
+      consoleWarnCalls.push(args);
+    };
   });
 
   afterEach(function() {
-    sandbox.restore();
+    console.warn = originalConsoleWarn;
   });
 
   // Restore NODE_ENV after all tests
@@ -153,7 +156,7 @@ describe('Parent Reference Edge Cases', function() {
 
         // In production with parentRef=false, no parent should be set
         // Use a different assertion to avoid issues with the object structure
-        (noRefModel.__parent === undefined).should.be.true();
+        assert.strictEqual(noRefModel.__parent, undefined);
       } finally {
         // Restore the test environment
         process.env.NODE_ENV = testEnv;
@@ -188,8 +191,7 @@ describe('Parent Reference Edge Cases', function() {
         utils.applyParentProperty(refModel, masterInstance);
 
         // In production with parentRef=true, parent should be set
-        should.exist(refModel.__parent);
-        refModel.__parent.should.equal(masterInstance);
+        assert.strictEqual(refModel.__parent, masterInstance);
       } finally {
         // Restore the test environment
         process.env.NODE_ENV = testEnv;
@@ -225,12 +227,12 @@ describe('Parent Reference Edge Cases', function() {
       utils.applyParentProperty(parent, child);
 
       // Both should have parent references
-      should.exist(child.__parent);
-      should.exist(parent.__parent);
+      assert.ok(child.__parent != null);
+      assert.ok(parent.__parent != null);
 
       // References should point to the correct objects
-      child.__parent.should.equal(parent);
-      parent.__parent.should.equal(child);
+      assert.strictEqual(child.__parent, parent);
+      assert.strictEqual(parent.__parent, child);
     });
   });
 
@@ -274,7 +276,7 @@ describe('Parent Reference Edge Cases', function() {
       const addressModel2 = ModelWithoutParentRef.definition.properties.address.type;
 
       // They should be different model instances due to different parentRef settings
-      addressModel1.should.not.equal(addressModel2);
+      assert.notStrictEqual(addressModel1, addressModel2);
     });
 
     it('should handle anonymous models with parent references correctly', function() {
@@ -294,7 +296,7 @@ describe('Parent Reference Edge Cases', function() {
       const AddressModel = Customer.definition.properties.address.type;
 
       // Verify it's anonymous
-      AddressModel.settings.anonymous.should.be.true();
+      assert.strictEqual(AddressModel.settings.anonymous, true);
 
       // Create instances
       const customer = new Customer({
@@ -306,8 +308,7 @@ describe('Parent Reference Edge Cases', function() {
       });
 
       // The address should have a parent reference
-      should.exist(customer.address.__parent);
-      customer.address.__parent.should.equal(customer);
+      assert.strictEqual(customer.address.__parent, customer);
     });
   });
 
@@ -355,9 +356,9 @@ describe('Parent Reference Edge Cases', function() {
       utils.applyParentProperty(employee, team);
 
       // Verify parent references
-      department.__parent.should.equal(company);
-      team.__parent.should.equal(department);
-      employee.__parent.should.equal(team);
+      assert.strictEqual(department.__parent, company);
+      assert.strictEqual(team.__parent, department);
+      assert.strictEqual(employee.__parent, team);
     });
 
     it('should handle arrays of models with parent references', function() {
@@ -390,8 +391,7 @@ describe('Parent Reference Edge Cases', function() {
 
       // Verify parent references for each employee
       employees.forEach(employee => {
-        should.exist(employee.__parent);
-        employee.__parent.should.equal(department);
+        assert.strictEqual(employee.__parent, department);
       });
     });
   });
@@ -431,8 +431,7 @@ describe('Parent Reference Edge Cases', function() {
       });
 
       // Verify parent references are maintained
-      should.exist(order.items[0].__parent);
-      order.items[0].__parent.should.equal(order);
+      assert.strictEqual(order.items[0].__parent, order);
     });
 
     it('should handle model reuse between datasources correctly', function() {
@@ -480,13 +479,11 @@ describe('Parent Reference Edge Cases', function() {
       });
 
       // Verify parent references
-      should.exist(product1.category.__parent);
-      should.exist(product2.category.__parent);
-      product1.category.__parent.should.equal(product1);
-      product2.category.__parent.should.equal(product2);
+      assert.strictEqual(product1.category.__parent, product1);
+      assert.strictEqual(product2.category.__parent, product2);
 
       // Verify the category models are the same (reused)
-      product1.category.constructor.should.equal(product2.category.constructor);
+      assert.strictEqual(product1.category.constructor, product2.category.constructor);
     });
   });
 
@@ -537,25 +534,23 @@ describe('Parent Reference Edge Cases', function() {
       });
 
       // Verify parent references
-      should.exist(source.details.__parent);
-      should.exist(target.details.__parent);
-      source.details.__parent.should.equal(source);
-      target.details.__parent.should.equal(target);
+      assert.strictEqual(source.details.__parent, source);
+      assert.strictEqual(target.details.__parent, target);
 
       // Verify they are separate instances
-      source.details.should.not.equal(target.details);
+      assert.notStrictEqual(source.details, target.details);
 
       // Verify data was copied correctly
-      target.details.description.should.equal('Source description');
+      assert.strictEqual(target.details.description, 'Source description');
 
       // Verify the tags array contains the same values
-      target.details.tags.length.should.equal(2);
-      target.details.tags[0].should.equal('tag1');
-      target.details.tags[1].should.equal('tag2');
+      assert.strictEqual(target.details.tags.length, 2);
+      assert.strictEqual(target.details.tags[0], 'tag1');
+      assert.strictEqual(target.details.tags[1], 'tag2');
 
       // Verify changes to one don't affect the other
       source.details.description = 'Updated source';
-      target.details.description.should.equal('Source description');
+      assert.strictEqual(target.details.description, 'Source description');
     });
 
     it('should handle array property copying correctly', function() {
@@ -580,19 +575,19 @@ describe('Parent Reference Edge Cases', function() {
       });
 
       // Verify they are separate instances
-      person1.should.not.equal(person2);
-      person1.hobbies.should.not.equal(person2.hobbies);
+      assert.notStrictEqual(person1, person2);
+      assert.notStrictEqual(person1.hobbies, person2.hobbies);
 
       // Verify data was copied correctly
-      person2.name.should.equal('Jane');
-      person2.hobbies.length.should.equal(2);
-      person2.hobbies[0].should.equal('reading');
-      person2.hobbies[1].should.equal('swimming');
+      assert.strictEqual(person2.name, 'Jane');
+      assert.strictEqual(person2.hobbies.length, 2);
+      assert.strictEqual(person2.hobbies[0], 'reading');
+      assert.strictEqual(person2.hobbies[1], 'swimming');
 
       // Verify changes to one don't affect the other
       person1.hobbies.push('coding');
-      person1.hobbies.length.should.equal(3);
-      person2.hobbies.length.should.equal(2);
+      assert.strictEqual(person1.hobbies.length, 3);
+      assert.strictEqual(person2.hobbies.length, 2);
     });
 
     it('should handle embedded model copying correctly', function() {
@@ -626,23 +621,21 @@ describe('Parent Reference Edge Cases', function() {
       });
 
       // Verify parent references
-      should.exist(product1.category.__parent);
-      should.exist(product2.category.__parent);
-      product1.category.__parent.should.equal(product1);
-      product2.category.__parent.should.equal(product2);
+      assert.strictEqual(product1.category.__parent, product1);
+      assert.strictEqual(product2.category.__parent, product2);
 
       // Verify they are separate instances
-      product1.should.not.equal(product2);
-      product1.category.should.not.equal(product2.category);
+      assert.notStrictEqual(product1, product2);
+      assert.notStrictEqual(product1.category, product2.category);
 
       // Verify data was copied correctly
-      product2.name.should.equal('Gizmo');
-      product2.category.name.should.equal('Gadgets');
-      product2.category.code.should.equal('GAD-001');
+      assert.strictEqual(product2.name, 'Gizmo');
+      assert.strictEqual(product2.category.name, 'Gadgets');
+      assert.strictEqual(product2.category.code, 'GAD-001');
 
       // Verify changes to one don't affect the other
       product1.category.name = 'Updated Gadgets';
-      product2.category.name.should.equal('Gadgets');
+      assert.strictEqual(product2.category.name, 'Gadgets');
     });
   });
 });

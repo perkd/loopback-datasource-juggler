@@ -5,7 +5,8 @@
 
 'use strict';
 
-const should = require('./init.js');
+const {describe, it, beforeEach, afterEach} = require('node:test');
+const assert = require('node:assert/strict');
 const {DataSource, ModelRegistry} = require('../');
 
 describe('Documentation Validation', function() {
@@ -26,9 +27,9 @@ describe('Documentation Validation', function() {
 
       // Test simplified API signature from documentation
       const models = ModelRegistry.getModelsForOwner(dataSource);
-      models.should.be.an.Array();
-      models.should.have.length(1);
-      models[0].should.equal(User);
+      assert.ok(Array.isArray(models));
+      assert.equal(models.length, 1);
+      assert.equal(models[0], User);
     });
 
     it('should validate hasModelForOwner signature matches documentation', function() {
@@ -36,10 +37,10 @@ describe('Documentation Validation', function() {
 
       // Test parameter order: owner first, then modelName
       const hasUser = ModelRegistry.hasModelForOwner(dataSource, 'User');
-      hasUser.should.be.true();
+      assert.equal(hasUser, true);
 
       const hasProduct = ModelRegistry.hasModelForOwner(dataSource, 'Product');
-      hasProduct.should.be.false();
+      assert.equal(hasProduct, false);
     });
 
     it('should validate getModelForOwner signature matches documentation', function() {
@@ -47,11 +48,11 @@ describe('Documentation Validation', function() {
 
       // Test parameter order: owner first, then modelName
       const foundUser = ModelRegistry.getModelForOwner(dataSource, 'User');
-      should.exist(foundUser);
-      foundUser.should.equal(User);
+      assert.ok(foundUser);
+      assert.equal(foundUser, User);
 
       const notFound = ModelRegistry.getModelForOwner(dataSource, 'Product');
-      should.not.exist(notFound);
+      assert.equal(notFound, undefined);
     });
 
     it('should validate getModelNamesForOwner signature matches documentation', function() {
@@ -60,10 +61,10 @@ describe('Documentation Validation', function() {
 
       // Test simplified API signature
       const modelNames = ModelRegistry.getModelNamesForOwner(dataSource);
-      modelNames.should.be.an.Array();
-      modelNames.should.have.length(2);
-      modelNames.should.containEql('User');
-      modelNames.should.containEql('Product');
+      assert.ok(Array.isArray(modelNames));
+      assert.equal(modelNames.length, 2);
+      assert.ok(modelNames.includes('User'));
+      assert.ok(modelNames.includes('Product'));
     });
   });
 
@@ -72,21 +73,21 @@ describe('Documentation Validation', function() {
       const User = dataSource.define('User', {name: 'string'});
 
       // Test explicit API methods mentioned in documentation
-      ModelRegistry.should.have.property('getModelsForOwnerWithType');
-      ModelRegistry.should.have.property('hasModelForOwnerWithType');
-      ModelRegistry.should.have.property('getModelForOwnerWithType');
+      assert.ok(ModelRegistry.getModelsForOwnerWithType);
+      assert.ok(ModelRegistry.hasModelForOwnerWithType);
+      assert.ok(ModelRegistry.getModelForOwnerWithType);
 
       // Test explicit API usage
       const models = ModelRegistry.getModelsForOwnerWithType(dataSource, 'dataSource');
-      models.should.be.an.Array();
-      models.should.have.length(1);
-      models[0].should.equal(User);
+      assert.ok(Array.isArray(models));
+      assert.equal(models.length, 1);
+      assert.equal(models[0], User);
 
       const hasUser = ModelRegistry.hasModelForOwnerWithType(dataSource, 'User', 'dataSource');
-      hasUser.should.be.true();
+      assert.equal(hasUser, true);
 
       const foundUser = ModelRegistry.getModelForOwnerWithType(dataSource, 'User', 'dataSource');
-      foundUser.should.equal(User);
+      assert.equal(foundUser, User);
     });
   });
 
@@ -99,19 +100,19 @@ describe('Documentation Validation', function() {
       mockApp.models = {};
 
       // Test registerModelForApp method mentioned in documentation
-      ModelRegistry.should.have.property('registerModelForApp');
+      assert.ok(ModelRegistry.registerModelForApp);
 
       const result = ModelRegistry.registerModelForApp(mockApp, User);
-      result.should.equal(User);
-      User.app.should.equal(mockApp);
+      assert.equal(result, User);
+      assert.equal(User.app, mockApp);
 
       // Verify app models are isolated from DataSource models
       const appModels = ModelRegistry.getModelsForOwner(mockApp);
-      appModels.should.have.length(1);
-      appModels[0].should.equal(User);
+      assert.equal(appModels.length, 1);
+      assert.equal(appModels[0], User);
 
       const dsModels = ModelRegistry.getModelsForOwner(dataSource);
-      dsModels.should.have.length(0); // User now belongs to app, not dataSource
+      assert.equal(dsModels.length, 0); // User now belongs to app, not dataSource
     });
   });
 
@@ -123,34 +124,34 @@ describe('Documentation Validation', function() {
       // Test all documented proxy behaviors
 
       // Property access
-      dataSource.models.User.should.equal(User);
-      dataSource.models.Product.should.equal(Product);
+      assert.equal(dataSource.models.User, User);
+      assert.equal(dataSource.models.Product, Product);
 
       // Object.keys()
       const keys = Object.keys(dataSource.models);
-      keys.should.containEql('User');
-      keys.should.containEql('Product');
+      assert.ok(keys.includes('User'));
+      assert.ok(keys.includes('Product'));
 
       // Object.values()
       const values = Object.values(dataSource.models);
-      values.should.containEql(User);
-      values.should.containEql(Product);
+      assert.ok(values.includes(User));
+      assert.ok(values.includes(Product));
 
       // for...in enumeration
       const enumerated = [];
       for (const name in dataSource.models) {
         enumerated.push(name);
       }
-      enumerated.should.containEql('User');
-      enumerated.should.containEql('Product');
+      assert.ok(enumerated.includes('User'));
+      assert.ok(enumerated.includes('Product'));
 
       // hasOwnProperty
-      dataSource.models.hasOwnProperty('User').should.be.true();
-      dataSource.models.hasOwnProperty('NonExistent').should.be.false();
+      assert.equal(dataSource.models.hasOwnProperty('User'), true);
+      assert.equal(dataSource.models.hasOwnProperty('NonExistent'), false);
 
       // 'in' operator
-      ('User' in dataSource.models).should.be.true();
-      ('NonExistent' in dataSource.models).should.be.false();
+      assert.equal('User' in dataSource.models, true);
+      assert.equal('NonExistent' in dataSource.models, false);
     });
   });
 
@@ -163,14 +164,14 @@ describe('Documentation Validation', function() {
 
       for (let i = 0; i < 1000; i++) {
         const models = ModelRegistry.getModelsForOwner(dataSource);
-        models.should.have.length(1);
+        assert.equal(models.length, 1);
       }
 
       const end = process.hrtime.bigint();
       const duration = Number(end - start) / 1000000; // Convert to milliseconds
 
       // Should complete efficiently (exact timing may vary)
-      duration.should.be.below(100); // Should complete in under 100ms
+      assert.ok(duration < 100); // Should complete in under 100ms
     });
   });
 
@@ -179,16 +180,16 @@ describe('Documentation Validation', function() {
       const User = dataSource.define('User', {name: 'string'});
 
       // All traditional patterns should still work
-      should.exist(dataSource.models.User);
-      dataSource.models.User.should.equal(User);
+      assert.ok(dataSource.models.User);
+      assert.equal(dataSource.models.User, User);
 
       // Traditional enumeration should work
       const modelNames = Object.keys(dataSource.models);
-      modelNames.should.containEql('User');
+      assert.ok(modelNames.includes('User'));
 
       // Traditional property checks should work
-      dataSource.models.hasOwnProperty('User').should.be.true();
-      ('User' in dataSource.models).should.be.true();
+      assert.equal(dataSource.models.hasOwnProperty('User'), true);
+      assert.equal('User' in dataSource.models, true);
     });
   });
 
@@ -196,14 +197,14 @@ describe('Documentation Validation', function() {
     it('should validate graceful error handling claims', function() {
       // Invalid parameters should not throw errors
       const emptyResult = ModelRegistry.getModelsForOwner(null);
-      emptyResult.should.be.an.Array();
-      emptyResult.should.have.length(0);
+      assert.ok(Array.isArray(emptyResult));
+      assert.equal(emptyResult.length, 0);
 
       const falseResult = ModelRegistry.hasModelForOwner(null, 'User');
-      falseResult.should.be.false();
+      assert.equal(falseResult, false);
 
       const undefinedResult = ModelRegistry.getModelForOwner(null, 'User');
-      should.not.exist(undefinedResult);
+      assert.equal(undefinedResult, undefined);
     });
   });
 });

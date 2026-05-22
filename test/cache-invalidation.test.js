@@ -5,7 +5,8 @@
 
 'use strict';
 
-const should = require('./init.js');
+const {describe, it, beforeEach} = require('node:test');
+const assert = require('node:assert/strict');
 const DataSource = require('../lib/datasource').DataSource;
 const {ModelRegistry} = require('../lib/model-registry');
 
@@ -23,24 +24,24 @@ describe('Cache Invalidation Fix', function() {
 
       // Get models to populate cache
       const modelsBefore = ModelRegistry.getModelsForOwner(dataSource);
-      modelsBefore.should.have.length(1);
-      modelsBefore[0].modelName.should.equal('User');
+      assert.equal(modelsBefore.length, 1);
+      assert.equal(modelsBefore[0].modelName, 'User');
 
       // Verify registry has models
-      ModelRegistry.getAllModels().size.should.be.greaterThan(0);
+      assert.ok(ModelRegistry.getAllModels().size > 0);
 
       // Clear registry
       ModelRegistry.clear();
 
       // Verify registry is cleared
-      ModelRegistry.getAllModels().size.should.equal(0);
+      assert.equal(ModelRegistry.getAllModels().size, 0);
 
       // Get models after clear - should return empty array, not cached result
       const modelsAfter = ModelRegistry.getModelsForOwner(dataSource);
-      modelsAfter.should.have.length(0);
+      assert.equal(modelsAfter.length, 0);
 
       // Verify cache was invalidated (different array reference)
-      (modelsBefore === modelsAfter).should.be.false();
+      assert.equal(modelsBefore === modelsAfter, false);
     });
 
     it('should properly release all model references on clear()', function() {
@@ -51,17 +52,17 @@ describe('Cache Invalidation Fix', function() {
 
       // Get models to populate cache
       const dsModels = ModelRegistry.getModelsForOwner(dataSource);
-      dsModels.should.have.length(2);
+      assert.equal(dsModels.length, 2);
 
       // Verify models are registered
-      ModelRegistry.getAllModels().size.should.be.greaterThan(0);
+      assert.ok(ModelRegistry.getAllModels().size > 0);
 
       // Clear registry
       ModelRegistry.clear();
 
       // Verify complete cleanup
-      ModelRegistry.getAllModels().size.should.equal(0);
-      ModelRegistry.getModelsForOwner(dataSource).should.have.length(0);
+      assert.equal(ModelRegistry.getAllModels().size, 0);
+      assert.equal(ModelRegistry.getModelsForOwner(dataSource).length, 0);
     });
 
     it('should handle multiple DataSources with cache invalidation', function() {
@@ -77,8 +78,8 @@ describe('Cache Invalidation Fix', function() {
       const models1Before = ModelRegistry.getModelsForOwner(dataSource1);
       const models2Before = ModelRegistry.getModelsForOwner(dataSource2);
 
-      models1Before.should.have.length(1);
-      models2Before.should.have.length(1);
+      assert.equal(models1Before.length, 1);
+      assert.equal(models2Before.length, 1);
 
       // Clear registry
       ModelRegistry.clear();
@@ -87,12 +88,12 @@ describe('Cache Invalidation Fix', function() {
       const models1After = ModelRegistry.getModelsForOwner(dataSource1);
       const models2After = ModelRegistry.getModelsForOwner(dataSource2);
 
-      models1After.should.have.length(0);
-      models2After.should.have.length(0);
+      assert.equal(models1After.length, 0);
+      assert.equal(models2After.length, 0);
 
       // Verify different array references (cache invalidated)
-      (models1Before === models1After).should.be.false();
-      (models2Before === models2After).should.be.false();
+      assert.equal(models1Before === models1After, false);
+      assert.equal(models2Before === models2After, false);
     });
 
     it('should maintain cache functionality after clear()', function() {
@@ -102,7 +103,7 @@ describe('Cache Invalidation Fix', function() {
 
       // Get models to populate cache
       const modelsBefore = ModelRegistry.getModelsForOwner(dataSource);
-      modelsBefore.should.have.length(1);
+      assert.equal(modelsBefore.length, 1);
 
       // Clear registry
       ModelRegistry.clear();
@@ -114,11 +115,11 @@ describe('Cache Invalidation Fix', function() {
       const modelsAfter1 = ModelRegistry.getModelsForOwner(dataSource);
       const modelsAfter2 = ModelRegistry.getModelsForOwner(dataSource);
 
-      modelsAfter1.should.have.length(1);
-      modelsAfter1[0].modelName.should.equal('Product');
+      assert.equal(modelsAfter1.length, 1);
+      assert.equal(modelsAfter1[0].modelName, 'Product');
 
       // Second call should return cached result (same array reference)
-      (modelsAfter1 === modelsAfter2).should.be.true();
+      assert.equal(modelsAfter1 === modelsAfter2, true);
     });
 
     it('should handle cache invalidation with DataSource models', function() {
@@ -133,17 +134,17 @@ describe('Cache Invalidation Fix', function() {
       const ds1Models = ModelRegistry.getModelsForOwner(dataSource1);
       const ds2Models = ModelRegistry.getModelsForOwner(dataSource2);
 
-      ds1Models.should.have.length(1);
-      ds1Models[0].modelName.should.equal('User1');
-      ds2Models.should.have.length(1);
-      ds2Models[0].modelName.should.equal('User2');
+      assert.equal(ds1Models.length, 1);
+      assert.equal(ds1Models[0].modelName, 'User1');
+      assert.equal(ds2Models.length, 1);
+      assert.equal(ds2Models[0].modelName, 'User2');
 
       // Clear registry
       ModelRegistry.clear();
 
       // Both should return empty arrays
-      ModelRegistry.getModelsForOwner(dataSource1).should.have.length(0);
-      ModelRegistry.getModelsForOwner(dataSource2).should.have.length(0);
+      assert.equal(ModelRegistry.getModelsForOwner(dataSource1).length, 0);
+      assert.equal(ModelRegistry.getModelsForOwner(dataSource2).length, 0);
     });
   });
 
@@ -164,8 +165,8 @@ describe('Cache Invalidation Fix', function() {
       const models1 = ModelRegistry.getModelsForOwner(dataSource);
       const models2 = ModelRegistry.getModelsForOwner(dataSource);
 
-      models1.should.have.length(1);
-      (models1 === models2).should.be.true(); // Cache should work
+      assert.equal(models1.length, 1);
+      assert.equal(models1 === models2, true); // Cache should work
     });
 
     it('should handle multiple clear() calls safely', function() {
@@ -181,7 +182,7 @@ describe('Cache Invalidation Fix', function() {
       ModelRegistry.clear();
 
       // Should still work correctly
-      ModelRegistry.getModelsForOwner(dataSource).should.have.length(0);
+      assert.equal(ModelRegistry.getModelsForOwner(dataSource).length, 0);
     });
   });
 });

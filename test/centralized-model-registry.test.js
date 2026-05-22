@@ -5,8 +5,8 @@
 
 'use strict';
 
-const should = require('./init.js');
-const assert = require('assert');
+const {describe, it, beforeEach, afterEach} = require('node:test');
+const assert = require('node:assert/strict');
 
 const jdb = require('../');
 const DataSource = jdb.DataSource;
@@ -42,9 +42,9 @@ describe('Centralized Model Registry', function() {
 
       // Get models for this DataSource (using new proposal API)
       const models = ModelRegistry.getModelsForOwner(dataSource);
-      models.should.be.an.Array();
-      models.should.have.length(1);
-      models[0].should.equal(User);
+      assert.ok(Array.isArray(models));
+      assert.equal(models.length, 1);
+      assert.equal(models[0], User);
     });
 
     it('should provide getModelNamesForOwner method', function() {
@@ -54,10 +54,10 @@ describe('Centralized Model Registry', function() {
 
       // Get model names for this DataSource
       const modelNames = ModelRegistry.getModelNamesForOwner(dataSource, 'dataSource');
-      modelNames.should.be.an.Array();
-      modelNames.should.have.length(2);
-      modelNames.should.containEql('User');
-      modelNames.should.containEql('Product');
+      assert.ok(Array.isArray(modelNames));
+      assert.equal(modelNames.length, 2);
+      assert.ok(modelNames.includes('User'));
+      assert.ok(modelNames.includes('Product'));
     });
 
     it('should provide hasModelForOwner method', function() {
@@ -65,8 +65,8 @@ describe('Centralized Model Registry', function() {
       const User = dataSource.define('User', {name: 'string'});
 
       // Check if model exists for this DataSource (using new proposal API)
-      ModelRegistry.hasModelForOwner(dataSource, 'User').should.be.true();
-      ModelRegistry.hasModelForOwner(dataSource, 'NonExistent').should.be.false();
+      assert.equal(ModelRegistry.hasModelForOwner(dataSource, 'User'), true);
+      assert.equal(ModelRegistry.hasModelForOwner(dataSource, 'NonExistent'), false);
     });
 
     it('should provide getModelForOwner method', function() {
@@ -75,12 +75,12 @@ describe('Centralized Model Registry', function() {
 
       // Get specific model for this DataSource (using new proposal API)
       const foundModel = ModelRegistry.getModelForOwner(dataSource, 'User');
-      should.exist(foundModel);
-      foundModel.should.equal(User);
+      assert.ok(foundModel);
+      assert.equal(foundModel, User);
 
       // Try to get non-existent model
       const notFound = ModelRegistry.getModelForOwner(dataSource, 'NonExistent');
-      should.not.exist(notFound);
+      assert.equal(notFound, undefined);
     });
 
     it('should isolate models between different DataSources', function() {
@@ -94,31 +94,31 @@ describe('Centralized Model Registry', function() {
       const models1 = ModelRegistry.getModelsForOwner(dataSource);
       const models2 = ModelRegistry.getModelsForOwner(dataSource2);
 
-      models1.should.have.length(1);
-      models2.should.have.length(1);
-      models1[0].should.equal(User1);
-      models2[0].should.equal(User2);
-      models1[0].should.not.equal(models2[0]);
+      assert.equal(models1.length, 1);
+      assert.equal(models2.length, 1);
+      assert.equal(models1[0], User1);
+      assert.equal(models2[0], User2);
+      assert.notEqual(models1[0], models2[0]);
     });
   });
 
   describe('ModelRegistryProxy', function() {
     it('should create a proxy with correct owner and type', function() {
       const proxy = new ModelRegistryProxy(dataSource, 'dataSource');
-      should.exist(proxy);
+      assert.ok(proxy);
       // Note: Due to the Proxy, we can't directly access owner/ownerType
       // Instead, we test that the proxy works correctly
-      should.exist(proxy);
+      assert.ok(proxy);
     });
 
     it('should throw error for invalid parameters', function() {
-      (function() {
+      assert.throws(() => {
         new ModelRegistryProxy(null, 'dataSource');
-      }).should.throw('ModelRegistryProxy requires an owner object');
+      }, /ModelRegistryProxy requires an owner object/);
 
-      (function() {
+      assert.throws(() => {
         new ModelRegistryProxy(dataSource, 'invalid');
-      }).should.throw('ModelRegistryProxy requires ownerType to be "dataSource" or "app"');
+      }, /ModelRegistryProxy requires ownerType to be "dataSource" or "app"/);
     });
 
     it('should provide getModel method', function() {
@@ -127,8 +127,8 @@ describe('Centralized Model Registry', function() {
 
       // Access model through proxy property access (not direct method call)
       const foundModel = proxy.User;
-      should.exist(foundModel);
-      foundModel.should.equal(User);
+      assert.ok(foundModel);
+      assert.equal(foundModel, User);
     });
 
     it('should provide setModel method', function() {
@@ -140,12 +140,12 @@ describe('Centralized Model Registry', function() {
 
       // Set model through proxy property assignment
       proxy.TestModel = mockModel;
-      mockModel.dataSource.should.equal(dataSource);
+      assert.equal(mockModel.dataSource, dataSource);
 
       // Verify it was registered
       const foundModel = proxy.TestModel;
-      should.exist(foundModel);
-      foundModel.should.equal(mockModel);
+      assert.ok(foundModel);
+      assert.equal(foundModel, mockModel);
     });
 
     it('should provide hasModel method', function() {
@@ -153,8 +153,8 @@ describe('Centralized Model Registry', function() {
       const proxy = new ModelRegistryProxy(dataSource, 'dataSource');
 
       // Test using 'in' operator and hasOwnProperty
-      ('User' in proxy).should.be.true();
-      ('NonExistent' in proxy).should.be.false();
+      assert.equal('User' in proxy, true);
+      assert.equal('NonExistent' in proxy, false);
     });
 
     it('should provide getModelNames method', function() {
@@ -164,10 +164,10 @@ describe('Centralized Model Registry', function() {
 
       // Test using Object.keys() which should work with the proxy
       const modelNames = Object.keys(proxy);
-      modelNames.should.be.an.Array();
-      modelNames.should.have.length(2);
-      modelNames.should.containEql('User');
-      modelNames.should.containEql('Product');
+      assert.ok(Array.isArray(modelNames));
+      assert.equal(modelNames.length, 2);
+      assert.ok(modelNames.includes('User'));
+      assert.ok(modelNames.includes('Product'));
     });
   });
 
@@ -180,9 +180,9 @@ describe('Centralized Model Registry', function() {
       });
 
       // Access through DataSource.models
-      should.exist(dataSource.models.User);
-      dataSource.models.User.should.equal(User);
-      dataSource.models.User.modelName.should.equal('User');
+      assert.ok(dataSource.models.User);
+      assert.equal(dataSource.models.User, User);
+      assert.equal(dataSource.models.User.modelName, 'User');
     });
 
     it('should support Object.keys() on DataSource.models', function() {
@@ -192,10 +192,10 @@ describe('Centralized Model Registry', function() {
 
       // Test Object.keys()
       const keys = Object.keys(dataSource.models);
-      keys.should.be.an.Array();
-      keys.should.have.length(2);
-      keys.should.containEql('User');
-      keys.should.containEql('Product');
+      assert.ok(Array.isArray(keys));
+      assert.equal(keys.length, 2);
+      assert.ok(keys.includes('User'));
+      assert.ok(keys.includes('Product'));
     });
 
     it('should support for...in loops on DataSource.models', function() {
@@ -209,9 +209,9 @@ describe('Centralized Model Registry', function() {
         foundModels.push(modelName);
       }
 
-      foundModels.should.have.length(2);
-      foundModels.should.containEql('User');
-      foundModels.should.containEql('Product');
+      assert.equal(foundModels.length, 2);
+      assert.ok(foundModels.includes('User'));
+      assert.ok(foundModels.includes('Product'));
     });
 
     it('should support hasOwnProperty on DataSource.models', function() {
@@ -219,8 +219,8 @@ describe('Centralized Model Registry', function() {
       const User = dataSource.define('User', {name: 'string'});
 
       // Test hasOwnProperty
-      dataSource.models.hasOwnProperty('User').should.be.true();
-      dataSource.models.hasOwnProperty('NonExistent').should.be.false();
+      assert.equal(dataSource.models.hasOwnProperty('User'), true);
+      assert.equal(dataSource.models.hasOwnProperty('NonExistent'), false);
     });
 
     it('should handle model assignment with deprecation warning', function() {
@@ -241,11 +241,11 @@ describe('Centralized Model Registry', function() {
         dataSource.models = {AssignedModel: mockModel};
 
         // Verify warning was shown
-        warningMessage.should.containEql('deprecated');
+        assert.match(warningMessage, /deprecated/);
 
         // Verify model was registered
-        should.exist(dataSource.models.AssignedModel);
-        dataSource.models.AssignedModel.dataSource.should.equal(dataSource);
+        assert.ok(dataSource.models.AssignedModel);
+        assert.equal(dataSource.models.AssignedModel.dataSource, dataSource);
       } finally {
         console.warn = originalWarn;
       }
@@ -259,18 +259,18 @@ describe('Centralized Model Registry', function() {
       const User2 = dataSource2.define('User2', {title: 'string'});
 
       // Verify isolation through proxy
-      should.exist(dataSource.models.User1);
-      should.exist(dataSource2.models.User2);
-      dataSource.models.User1.should.equal(User1);
-      dataSource2.models.User2.should.equal(User2);
+      assert.ok(dataSource.models.User1);
+      assert.ok(dataSource2.models.User2);
+      assert.equal(dataSource.models.User1, User1);
+      assert.equal(dataSource2.models.User2, User2);
 
       // Verify cross-access doesn't work
-      should.not.exist(dataSource.models.User2);
-      should.not.exist(dataSource2.models.User1);
+      assert.equal(dataSource.models.User2, undefined);
+      assert.equal(dataSource2.models.User1, undefined);
 
       // Verify each DataSource only sees its own models
-      Object.keys(dataSource.models).should.eql(['User1']);
-      Object.keys(dataSource2.models).should.eql(['User2']);
+      assert.deepEqual(Object.keys(dataSource.models), ['User1']);
+      assert.deepEqual(Object.keys(dataSource2.models), ['User2']);
     });
   });
 
@@ -282,31 +282,31 @@ describe('Centralized Model Registry', function() {
       // Test various access patterns that existing code might use
 
       // Direct property access
-      should.exist(dataSource.models.User);
-      dataSource.models.User.should.equal(User);
+      assert.ok(dataSource.models.User);
+      assert.equal(dataSource.models.User, User);
 
       // Object.keys()
-      Object.keys(dataSource.models).should.containEql('User');
+      assert.ok(Object.keys(dataSource.models).includes('User'));
 
       // Object.values()
-      Object.values(dataSource.models).should.containEql(User);
+      assert.ok(Object.values(dataSource.models).includes(User));
 
       // Property enumeration
       const modelNames = [];
       for (const name in dataSource.models) {
         modelNames.push(name);
       }
-      modelNames.should.containEql('User');
+      assert.ok(modelNames.includes('User'));
 
       // hasOwnProperty
-      dataSource.models.hasOwnProperty('User').should.be.true();
+      assert.equal(dataSource.models.hasOwnProperty('User'), true);
     });
 
     it('should handle undefined/null model access gracefully', function() {
       // Test accessing non-existent models
-      should.not.exist(dataSource.models.NonExistent);
-      should.not.exist(dataSource.models.undefined);
-      should.not.exist(dataSource.models.null);
+      assert.equal(dataSource.models.NonExistent, undefined);
+      assert.equal(dataSource.models.undefined, undefined);
+      assert.equal(dataSource.models.null, undefined);
     });
   });
 
@@ -334,8 +334,8 @@ describe('Centralized Model Registry', function() {
         const randomIndex = Math.floor(Math.random() * modelCount);
         const modelName = `TestModel${randomIndex}`;
         const foundModel = dataSource.models[modelName];
-        should.exist(foundModel);
-        foundModel.should.equal(models[randomIndex]);
+        assert.ok(foundModel);
+        assert.equal(foundModel, models[randomIndex]);
       }
 
       const end = process.hrtime.bigint();
@@ -343,7 +343,7 @@ describe('Centralized Model Registry', function() {
 
       // Performance should be consistent regardless of model count (O(1))
       // Allow reasonable time for 1000 lookups across 100 models
-      duration.should.be.below(100); // Should complete in under 100ms
+      assert.ok(duration < 100); // Should complete in under 100ms
 
       console.log(`    ✓ ${iterations} model lookups across ${modelCount} models completed in ${duration.toFixed(2)}ms`);
     });
@@ -366,15 +366,15 @@ describe('Centralized Model Registry', function() {
         const models1 = ModelRegistry.getModelsForOwner(dataSource);
         const models2 = ModelRegistry.getModelsForOwner(dataSource2);
 
-        models1.should.have.length(modelsPerDS);
-        models2.should.have.length(modelsPerDS);
+        assert.equal(models1.length, modelsPerDS);
+        assert.equal(models2.length, modelsPerDS);
       }
 
       const end = process.hrtime.bigint();
       const duration = Number(end - start) / 1000000;
 
       // Owner-aware queries should be very fast
-      duration.should.be.below(20); // Should complete in under 20ms
+      assert.ok(duration < 20); // Should complete in under 20ms
 
       console.log(`    ✓ ${iterations} owner-aware queries completed in ${duration.toFixed(2)}ms`);
     });
@@ -395,24 +395,24 @@ describe('Centralized Model Registry', function() {
 
       // Test Object.keys() performance
       const keys = Object.keys(dataSource.models);
-      keys.should.have.length(modelCount);
+      assert.equal(keys.length, modelCount);
 
       // Test enumeration performance
       let count = 0;
       for (const modelName in dataSource.models) {
         count++;
       }
-      count.should.equal(modelCount);
+      assert.equal(count, modelCount);
 
       // Test owner-aware query performance
       const allModels = ModelRegistry.getModelsForOwner(dataSource);
-      allModels.should.have.length(modelCount);
+      assert.equal(allModels.length, modelCount);
 
       const end = process.hrtime.bigint();
       const duration = Number(end - start) / 1000000;
 
       // All operations should complete quickly even with many models
-      duration.should.be.below(100); // Should complete in under 100ms
+      assert.ok(duration < 100); // Should complete in under 100ms
 
       console.log(`    ✓ Operations on ${modelCount} models completed in ${duration.toFixed(2)}ms`);
     });
@@ -441,19 +441,19 @@ describe('Centralized Model Registry', function() {
     describe('Bug #1: App Object Type Detection', function() {
       it('should detect LoopBack App objects (functions) correctly', function() {
         const ownerType = ModelRegistry._detectOwnerType(mockApp);
-        ownerType.should.equal('app');
+        assert.equal(ownerType, 'app');
       });
 
       it('should detect DataSource objects correctly', function() {
         const ownerType = ModelRegistry._detectOwnerType(dataSource);
-        ownerType.should.equal('dataSource');
+        assert.equal(ownerType, 'dataSource');
       });
 
       it('should return null for invalid objects', function() {
-        should.not.exist(ModelRegistry._detectOwnerType(null));
-        should.not.exist(ModelRegistry._detectOwnerType(undefined));
-        should.not.exist(ModelRegistry._detectOwnerType('string'));
-        should.not.exist(ModelRegistry._detectOwnerType(123));
+        assert.equal(ModelRegistry._detectOwnerType(null), null);
+        assert.equal(ModelRegistry._detectOwnerType(undefined), null);
+        assert.equal(ModelRegistry._detectOwnerType('string'), null);
+        assert.equal(ModelRegistry._detectOwnerType(123), null);
       });
 
       it('should handle App objects with different constructor names', function() {
@@ -461,18 +461,18 @@ describe('Centralized Model Registry', function() {
         const app1 = function() {};
         app1.models = {};
         app1.dataSources = {};
-        ModelRegistry._detectOwnerType(app1).should.equal('app');
+        assert.equal(ModelRegistry._detectOwnerType(app1), 'app');
 
         const app2 = function() {};
         app2.models = {};
         app2.middleware = [];
-        ModelRegistry._detectOwnerType(app2).should.equal('app');
+        assert.equal(ModelRegistry._detectOwnerType(app2), 'app');
 
         const app3 = function() {};
         app3.model = function() {};
         app3.use = function() {};
         app3.listen = function() {};
-        ModelRegistry._detectOwnerType(app3).should.equal('app');
+        assert.equal(ModelRegistry._detectOwnerType(app3), 'app');
       });
     });
 
@@ -484,13 +484,13 @@ describe('Centralized Model Registry', function() {
         ModelRegistry.registerModelForApp(mockApp, User);
 
         // Verify app relationship is set
-        User.app.should.equal(mockApp);
+        assert.equal(User.app, mockApp);
 
         // Verify model can be found by name
         const foundModel = ModelRegistry.findModelByName('User');
-        should.exist(foundModel);
-        foundModel.should.equal(User);
-        foundModel.app.should.equal(mockApp);
+        assert.ok(foundModel);
+        assert.equal(foundModel, User);
+        assert.equal(foundModel.app, mockApp);
       });
 
       it('should support app.model() integration pattern', function() {
@@ -500,10 +500,10 @@ describe('Centralized Model Registry', function() {
         mockApp.model(Product);
 
         // Verify model is registered and app relationship is set
-        Product.app.should.equal(mockApp);
+        assert.equal(Product.app, mockApp);
         const foundModel = ModelRegistry.findModelByName('Product');
-        should.exist(foundModel);
-        foundModel.should.equal(Product);
+        assert.ok(foundModel);
+        assert.equal(foundModel, Product);
       });
 
       it('should isolate models between different App instances', function() {
@@ -522,9 +522,9 @@ describe('Centralized Model Registry', function() {
         ModelRegistry.registerModelForApp(app2, User2);
 
         // Verify isolation
-        User1.app.should.equal(app1);
-        User2.app.should.equal(app2);
-        User1.app.should.not.equal(User2.app);
+        assert.equal(User1.app, app1);
+        assert.equal(User2.app, app2);
+        assert.notEqual(User1.app, User2.app);
       });
     });
 
@@ -537,31 +537,31 @@ describe('Centralized Model Registry', function() {
       it('should have consistent parameter order in simplified API', function() {
         // All simplified API methods should have owner as first parameter
         const models = ModelRegistry.getModelsForOwner(mockApp);
-        models.should.be.an.Array();
-        models.should.have.length(1);
-        models[0].modelName.should.equal('User');
+        assert.ok(Array.isArray(models));
+        assert.equal(models.length, 1);
+        assert.equal(models[0].modelName, 'User');
 
         const modelNames = ModelRegistry.getModelNamesForOwner(mockApp);
-        modelNames.should.eql(['User']);
+        assert.deepEqual(modelNames, ['User']);
 
         const hasModel = ModelRegistry.hasModelForOwner(mockApp, 'User');
-        hasModel.should.be.true();
+        assert.equal(hasModel, true);
 
         const model = ModelRegistry.getModelForOwner(mockApp, 'User');
-        model.modelName.should.equal('User');
+        assert.equal(model.modelName, 'User');
       });
 
       it('should have consistent parameter order in explicit API', function() {
         // All explicit API methods should have owner as first parameter
         const models = ModelRegistry.getModelsForOwnerWithType(mockApp, 'app');
-        models.should.be.an.Array();
-        models.should.have.length(1);
+        assert.ok(Array.isArray(models));
+        assert.equal(models.length, 1);
 
         const hasModel = ModelRegistry.hasModelForOwnerWithType(mockApp, 'User', 'app');
-        hasModel.should.be.true();
+        assert.equal(hasModel, true);
 
         const model = ModelRegistry.getModelForOwnerWithType(mockApp, 'User', 'app');
-        model.modelName.should.equal('User');
+        assert.equal(model.modelName, 'User');
       });
 
       it('should work with both DataSource and App owners', function() {
@@ -569,15 +569,15 @@ describe('Centralized Model Registry', function() {
 
         // Test DataSource with simplified API
         const dsModels = ModelRegistry.getModelsForOwner(dataSource);
-        dsModels.some(m => m.modelName === 'DSUser').should.be.true();
+        assert.equal(dsModels.some(m => m.modelName === 'DSUser'), true);
 
         // Test App with simplified API
         const appModels = ModelRegistry.getModelsForOwner(mockApp);
-        appModels.some(m => m.modelName === 'User').should.be.true();
+        assert.equal(appModels.some(m => m.modelName === 'User'), true);
 
         // Verify isolation
-        dsModels.some(m => m.modelName === 'User').should.be.false();
-        appModels.some(m => m.modelName === 'DSUser').should.be.false();
+        assert.equal(dsModels.some(m => m.modelName === 'User'), false);
+        assert.equal(appModels.some(m => m.modelName === 'DSUser'), false);
       });
     });
   });

@@ -5,9 +5,10 @@
 
 'use strict';
 
+const {beforeEach, describe, it} = require('node:test');
+const assert = require('node:assert/strict');
 const bdd = require('../helpers/bdd-if');
 const helpers = require('./_helpers');
-const should = require('should');
 
 module.exports = function(dataSourceFactory, connectorCapabilities) {
   const supportsDelete = 'delete' in dataSourceFactory().connector;
@@ -21,7 +22,7 @@ module.exports = function(dataSourceFactory, connectorCapabilities) {
         .then(() => CacheItem.delete('key1'))
         .then(() => CacheItem.keys())
         .then((keys) => {
-          keys.should.eql(['key2']);
+          assert.deepEqual(keys, ['key2']);
         });
     });
 

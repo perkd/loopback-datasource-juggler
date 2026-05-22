@@ -5,9 +5,9 @@
 
 'use strict';
 
-const should = require('./init.js');
+const {afterEach, beforeEach, describe, it} = require('node:test');
+const assert = require('node:assert/strict');
 const List = require('../lib/list');
-const parentRefHelper = require('./helpers/setup-parent-ref');
 const {ModelBuilder} = require('../lib/model-builder');
 
 const builder = new ModelBuilder(); // dummy builder instance for tests
@@ -57,35 +57,45 @@ PhoneCtor.modelBuilder = builder;
 describe('Does not break default Array functionality', function() {
   it('allows creating an empty length with a specified length', function() {
     const list = new List(4);
-    list.should.be.an.instanceOf(Array);
-    list.length.should.be.eql(4);
-    should.not.exist(list.itemType);
-    list.toJSON().should.eql([undefined, undefined, undefined, undefined]);
+    assert.ok(list instanceof Array);
+    assert.strictEqual(list.length, 4);
+    assert.strictEqual(list.itemType, undefined);
+    assert.deepStrictEqual(
+      list.toJSON(),
+      [undefined, undefined, undefined, undefined],
+    );
   });
 });
 
 describe('list of items typed by a class', function() {
-  parentRefHelper(() => builder);
+  beforeEach(() => {
+    builder.settings.parentRef = true;
+  });
+
+  afterEach(() => {
+    builder.settings.parentRef = false;
+  });
+
   it('allows itemType to be a class', function() {
     const phones = givenPhones();
 
     const list = new List(phones, Phone);
-    list.should.be.an.instanceOf(Array);
-    list.toJSON().should.be.eql(phones);
+    assert.ok(list instanceof Array);
+    assert.deepStrictEqual(list.toJSON(), phones);
   });
 
   it('converts items of plain json to the itemType', function() {
     const phones = givenPhonesAsJSON();
 
     const list = new List(phones, Phone);
-    list[0].should.be.an.instanceOf(Phone);
+    assert.ok(list[0] instanceof Phone);
   });
 
   it('converts stringified items to the itemType', function() {
     const phones = givenPhonesAsJSON();
 
     const list = new List(JSON.stringify(phones), Phone);
-    list[0].should.be.an.instanceOf(Phone);
+    assert.ok(list[0] instanceof Phone);
   });
 
   it('converts items of plain json to the itemType with push', function() {
@@ -93,7 +103,7 @@ describe('list of items typed by a class', function() {
 
     const list = new List([], Phone);
     list.push(phones[0]);
-    list[0].should.be.an.instanceOf(Phone);
+    assert.ok(list[0] instanceof Phone);
   });
 
   it('should assign the list\'s parent as parent to every child element', () => {
@@ -101,7 +111,7 @@ describe('list of items typed by a class', function() {
     const listParent = {name: 'PhoneBook'};
     const list = new List(phones, Phone, listParent);
     list.forEach((listItem) => {
-      listItem.should.have.property('__parent').which.equals(listParent);
+      assert.strictEqual(listItem.__parent, listParent);
     });
   });
 
@@ -111,33 +121,40 @@ describe('list of items typed by a class', function() {
     const list = new List([], Phone, listParent);
     list.push(phones[0], phones[1]);
     list.forEach((listItem) => {
-      listItem.should.have.property('__parent').which.equals(listParent);
+      assert.strictEqual(listItem.__parent, listParent);
     });
   });
 });
 
 describe('list of items typed by a ctor', function() {
-  parentRefHelper(() => builder);
+  beforeEach(() => {
+    builder.settings.parentRef = true;
+  });
+
+  afterEach(() => {
+    builder.settings.parentRef = false;
+  });
+
   it('allows itemType to be a ctor', function() {
     const phones = givenPhonesWithCtor();
 
     const list = new List(phones, PhoneCtor);
-    list.should.be.an.instanceOf(Array);
-    list.toJSON().should.be.eql(phones);
+    assert.ok(list instanceof Array);
+    assert.deepStrictEqual(list.toJSON(), phones);
   });
 
   it('converts items of plain json to the itemType', function() {
     const phones = givenPhonesAsJSON();
 
     const list = new List(phones, PhoneCtor);
-    list[0].should.be.an.instanceOf(PhoneCtor);
+    assert.ok(list[0] instanceof PhoneCtor);
   });
 
   it('converts stringified items to the itemType', function() {
     const phones = givenPhonesAsJSON();
 
     const list = new List(JSON.stringify(phones), PhoneCtor);
-    list[0].should.be.an.instanceOf(PhoneCtor);
+    assert.ok(list[0] instanceof PhoneCtor);
   });
 
   it('converts items of plain json to the itemType with push', function() {
@@ -145,7 +162,7 @@ describe('list of items typed by a ctor', function() {
 
     const list = new List([], PhoneCtor);
     list.push(phones[0]);
-    list[0].should.be.an.instanceOf(PhoneCtor);
+    assert.ok(list[0] instanceof PhoneCtor);
   });
 
   it('should assign the list\'s parent as parent to every child element', () => {
@@ -153,7 +170,7 @@ describe('list of items typed by a ctor', function() {
     const listParent = {name: 'PhoneBook'};
     const list = new List(phones, PhoneCtor, listParent);
     list.forEach((listItem) => {
-      listItem.should.have.property('__parent').which.equals(listParent);
+      assert.strictEqual(listItem.__parent, listParent);
     });
   });
 
@@ -163,7 +180,7 @@ describe('list of items typed by a ctor', function() {
     const list = new List([], PhoneCtor, listParent);
     list.push(phones[0], phones[1]);
     list.forEach((listItem) => {
-      listItem.should.have.property('__parent').which.equals(listParent);
+      assert.strictEqual(listItem.__parent, listParent);
     });
   });
 });

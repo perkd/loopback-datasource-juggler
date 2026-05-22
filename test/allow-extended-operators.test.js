@@ -5,8 +5,10 @@
 
 'use strict';
 
+const assert = require('node:assert/strict');
+const {describe, it} = require('node:test');
+
 const DataSource = require('..').DataSource;
-const should = require('should');
 
 describe('allowExtendedOperators', () => {
   function createTestModel(connectorSettings, modelSettings) {
@@ -68,16 +70,16 @@ describe('allowExtendedOperators', () => {
   }
 
   function assertOperatorNotAllowed(err) {
-    should.exist(err);
-    err.message.should.match(/Operators "\$exists" are not allowed in query/);
-    err.code.should.equal('OPERATOR_NOT_ALLOWED_IN_QUERY');
-    err.statusCode.should.equal(400);
-    err.details.should.have.property('operators');
-    err.details.should.have.property('where');
+    assert.ok(err);
+    assert.match(err.message, /Operators "\$exists" are not allowed in query/);
+    assert.strictEqual(err.code, 'OPERATOR_NOT_ALLOWED_IN_QUERY');
+    assert.strictEqual(err.statusCode, 400);
+    assert.ok(Object.prototype.hasOwnProperty.call(err.details, 'operators'));
+    assert.ok(Object.prototype.hasOwnProperty.call(err.details, 'where'));
   }
 
   describe('dataSource.settings.allowExtendedOperators', () => {
-    context('DAO.find()', () => {
+    describe('DAO.find()', () => {
       it('reports invalid operator by default', () => {
         const TestModel = createTestModel();
         return TestModel.find(extendedQuery()).catch(err => {
@@ -88,7 +90,7 @@ describe('allowExtendedOperators', () => {
       it('preserves extended operators with allowExtendedOperators set', () => {
         const TestModel = createTestModel({allowExtendedOperators: true});
         return TestModel.find(extendedQuery()).then(results => {
-          should(results[0].value).eql({$exists: true});
+          assert.deepStrictEqual(results[0].value, {$exists: true});
         });
       });
 
@@ -104,7 +106,7 @@ describe('allowExtendedOperators', () => {
         'preserves extended operators', () => {
         const TestModel = createTestModel({allowExtendedOperators: false}, {allowExtendedOperators: true});
         return TestModel.find(extendedQuery()).then(results => {
-          should(results[0].value).eql({$exists: true});
+          assert.deepStrictEqual(results[0].value, {$exists: true});
         });
       });
 
@@ -120,18 +122,18 @@ describe('allowExtendedOperators', () => {
         'preserves extended operators', () => {
         const TestModel = createTestModel({allowExtendedOperators: false});
         return TestModel.find(extendedQuery(), {allowExtendedOperators: true}).then(results => {
-          should(results[0].value).eql({$exists: true});
+          assert.deepStrictEqual(results[0].value, {$exists: true});
         });
       });
     });
 
-    context('DAO.updateAttributes()', () => {
+    describe('DAO.updateAttributes()', () => {
       it('`options.allowExtendedOperators` override data source settings - disable strict check', () => {
         const TestModel = createTestModel({allowExtendedOperators: false}, {strict: true});
         return TestModel.create({value: 'test'}).then((instance) => {
           return instance.updateAttributes(setCustomData(), {allowExtendedOperators: true})
             .then(() => {
-              should(TestModel.lastPersistedData).eql(setCustomData());
+              assert.deepStrictEqual(TestModel.lastPersistedData, setCustomData());
             });
         });
       });
@@ -141,8 +143,8 @@ describe('allowExtendedOperators', () => {
         return TestModel.create({value: 'test'}).then((inst) => {
           return inst.updateAttributes(setCustomData(), {allowExtendedOperators: false})
             .then(updateShouldHaveFailed, function onError(err) {
-              should.exist(err);
-              should(err.name).equal('ValidationError');
+              assert.ok(err);
+              assert.strictEqual(err.name, 'ValidationError');
             });
         });
       });
@@ -153,7 +155,7 @@ describe('allowExtendedOperators', () => {
           {strict: true, allowExtendedOperators: true});
         return TestModel.create({value: 'test'}).then((instance) => {
           return instance.updateAttributes(setCustomData()).then(() => {
-            should(TestModel.lastPersistedData).eql(setCustomData());
+            assert.deepStrictEqual(TestModel.lastPersistedData, setCustomData());
           });
         });
       });
@@ -165,8 +167,8 @@ describe('allowExtendedOperators', () => {
         return TestModel.create({value: 'test'}).then((inst) => {
           return inst.updateAttributes(setCustomData())
             .then(updateShouldHaveFailed, function onError(err) {
-              should.exist(err);
-              should(err.name).equal('ValidationError');
+              assert.ok(err);
+              assert.strictEqual(err.name, 'ValidationError');
             });
         });
       });
@@ -174,11 +176,11 @@ describe('allowExtendedOperators', () => {
   });
 
   describe('Model.settings.allowExtendedOperators', () => {
-    context('DAO.find()', () => {
+    describe('DAO.find()', () => {
       it('preserves extended operators with allowExtendedOperators set', () => {
         const TestModel = createTestModel({}, {allowExtendedOperators: true});
         return TestModel.find(extendedQuery()).then(results => {
-          should(results[0].value).eql({$exists: true});
+          assert.deepStrictEqual(results[0].value, {$exists: true});
         });
       });
 
@@ -194,7 +196,7 @@ describe('allowExtendedOperators', () => {
         'preserves extended operators', () => {
         const TestModel = createTestModel({allowExtendedOperators: false}, {allowExtendedOperators: true});
         return TestModel.find(extendedQuery()).then(results => {
-          should(results[0].value).eql({$exists: true});
+          assert.deepStrictEqual(results[0].value, {$exists: true});
         });
       });
 
@@ -208,18 +210,18 @@ describe('allowExtendedOperators', () => {
       it('`options.allowExtendedOperators` Model settings - preserves extended operators', () => {
         const TestModel = createTestModel({allowExtendedOperators: false});
         return TestModel.find(extendedQuery(), {allowExtendedOperators: true}).then(results => {
-          should(results[0].value).eql({$exists: true});
+          assert.deepStrictEqual(results[0].value, {$exists: true});
         });
       });
     });
 
-    context('DAO.updateAttributes()', () => {
+    describe('DAO.updateAttributes()', () => {
       it('`options.allowExtendedOperators` override Model settings - disable strict check', () => {
         const TestModel = createTestModel({}, {strict: true, allowExtendedOperators: false});
         return TestModel.create({value: 'test'}).then((instance) => {
           return instance.updateAttributes(setCustomData(), {allowExtendedOperators: true})
             .then(() => {
-              should(TestModel.lastPersistedData).eql(setCustomData());
+              assert.deepStrictEqual(TestModel.lastPersistedData, setCustomData());
             });
         });
       });
@@ -229,8 +231,8 @@ describe('allowExtendedOperators', () => {
         return TestModel.create({value: 'test'}).then((inst) => {
           return inst.updateAttributes(setCustomData(), {allowExtendedOperators: false})
             .then(updateShouldHaveFailed, function onError(err) {
-              should.exist(err);
-              should(err.name).equal('ValidationError');
+              assert.ok(err);
+              assert.strictEqual(err.name, 'ValidationError');
             });
         });
       });
@@ -240,7 +242,7 @@ describe('allowExtendedOperators', () => {
           {strict: true, allowExtendedOperators: true});
         return TestModel.create({value: 'test'}).then((instance) => {
           return instance.updateAttributes(setCustomData()).then(() => {
-            should(TestModel.lastPersistedData).eql(setCustomData());
+            assert.deepStrictEqual(TestModel.lastPersistedData, setCustomData());
           });
         });
       });
@@ -252,8 +254,8 @@ describe('allowExtendedOperators', () => {
         return TestModel.create({value: 'test'}).then((inst) => {
           return inst.updateAttributes(setCustomData())
             .then(updateShouldHaveFailed, function onError(err) {
-              should.exist(err);
-              should(err.name).equal('ValidationError');
+              assert.ok(err);
+              assert.strictEqual(err.name, 'ValidationError');
             });
         });
       });
@@ -261,11 +263,11 @@ describe('allowExtendedOperators', () => {
   });
 
   describe('options.allowExtendedOperators', () => {
-    context('DAO.find()', () => {
+    describe('DAO.find()', () => {
       it('preserves extended operators with allowExtendedOperators set', () => {
         const TestModel = createTestModel();
         return TestModel.find(extendedQuery(), {allowExtendedOperators: true}).then(results => {
-          should(results[0].value).eql({$exists: true});
+          assert.deepStrictEqual(results[0].value, {$exists: true});
         });
       });
 
@@ -281,7 +283,7 @@ describe('allowExtendedOperators', () => {
         'preserves extended operators', () => {
         const TestModel = createTestModel({allowExtendedOperators: false});
         return TestModel.find(extendedQuery(), {allowExtendedOperators: true}).then(results => {
-          should(results[0].value).eql({$exists: true});
+          assert.deepStrictEqual(results[0].value, {$exists: true});
         });
       });
 
@@ -297,18 +299,18 @@ describe('allowExtendedOperators', () => {
         'preserves extended operators', () => {
         const TestModel = createTestModel({}, {allowExtendedOperators: false});
         return TestModel.find(extendedQuery(), {allowExtendedOperators: true}).then(results => {
-          should(results[0].value).eql({$exists: true});
+          assert.deepStrictEqual(results[0].value, {$exists: true});
         });
       });
     });
 
-    context('DAO.updateAttributes()', () => {
+    describe('DAO.updateAttributes()', () => {
       it('`Model.settings.allowExtendedOperators` honor options settings - disable strict check', () => {
         const TestModel = createTestModel({}, {strict: true, allowExtendedOperators: false});
         return TestModel.create({value: 'test'}).then((instance) => {
           return instance.updateAttributes(setCustomData(), {allowExtendedOperators: true})
             .then(() => {
-              should(TestModel.lastPersistedData).eql(setCustomData());
+              assert.deepStrictEqual(TestModel.lastPersistedData, setCustomData());
             });
         });
       });
@@ -318,8 +320,8 @@ describe('allowExtendedOperators', () => {
         return TestModel.create({value: 'test'}).then((inst) => {
           return inst.updateAttributes(setCustomData(), {allowExtendedOperators: false})
             .then(updateShouldHaveFailed, function onError(err) {
-              should.exist(err);
-              should(err.name).equal('ValidationError');
+              assert.ok(err);
+              assert.strictEqual(err.name, 'ValidationError');
             });
         });
       });
@@ -329,7 +331,7 @@ describe('allowExtendedOperators', () => {
         return TestModel.create({value: 'test'}).then((instance) => {
           return instance.updateAttributes(setCustomData(), {allowExtendedOperators: true})
             .then(() => {
-              should(TestModel.lastPersistedData).eql(setCustomData());
+              assert.deepStrictEqual(TestModel.lastPersistedData, setCustomData());
             });
         });
       });
@@ -339,8 +341,8 @@ describe('allowExtendedOperators', () => {
         return TestModel.create({value: 'test'}).then((inst) => {
           return inst.updateAttributes(setCustomData(), {allowExtendedOperators: false})
             .then(updateShouldHaveFailed, function onError(err) {
-              should.exist(err);
-              should(err.name).equal('ValidationError');
+              assert.ok(err);
+              assert.strictEqual(err.name, 'ValidationError');
             });
         });
       });

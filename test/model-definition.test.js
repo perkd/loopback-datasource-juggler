@@ -5,8 +5,8 @@
 
 // This test written in mocha+should.js
 'use strict';
-const should = require('./init.js');
-const assert = require('assert');
+const {before, beforeEach, describe, it} = require('node:test');
+const assert = require('node:assert/strict');
 
 const jdb = require('../');
 const ModelBuilder = jdb.ModelBuilder;
@@ -21,7 +21,7 @@ describe('ModelDefinition class', function() {
     memory = new DataSource({connector: Memory});
   });
 
-  it('should be able to define plain models', function(done) {
+  it('should be able to define plain models', function() {
     const modelBuilder = new ModelBuilder();
 
     const User = new ModelDefinition(modelBuilder, 'User', {
@@ -33,26 +33,24 @@ describe('ModelDefinition class', function() {
     });
 
     User.build();
-    assert.equal(User.properties.name.type, String);
-    assert.equal(User.properties.bio.type, ModelBuilder.Text);
-    assert.equal(User.properties.approved.type, Boolean);
-    assert.equal(User.properties.joinedAt.type, Date);
-    assert.equal(User.properties.age.type, Number);
+    assert.strictEqual(User.properties.name.type, String);
+    assert.strictEqual(User.properties.bio.type, ModelBuilder.Text);
+    assert.strictEqual(User.properties.approved.type, Boolean);
+    assert.strictEqual(User.properties.joinedAt.type, Date);
+    assert.strictEqual(User.properties.age.type, Number);
 
     const json = User.toJSON();
-    assert.equal(json.name, 'User');
-    assert.equal(json.properties.name.type, 'String');
-    assert.equal(json.properties.bio.type, 'Text');
-    assert.equal(json.properties.approved.type, 'Boolean');
-    assert.equal(json.properties.joinedAt.type, 'Date');
-    assert.equal(json.properties.age.type, 'Number');
+    assert.strictEqual(json.name, 'User');
+    assert.strictEqual(json.properties.name.type, 'String');
+    assert.strictEqual(json.properties.bio.type, 'Text');
+    assert.strictEqual(json.properties.approved.type, 'Boolean');
+    assert.strictEqual(json.properties.joinedAt.type, 'Date');
+    assert.strictEqual(json.properties.age.type, 'Number');
 
-    assert.deepEqual(User.toJSON(), json);
-
-    done();
+    assert.deepStrictEqual(User.toJSON(), json);
   });
 
-  it('should be able to define additional properties', function(done) {
+  it('should be able to define additional properties', function() {
     const modelBuilder = new ModelBuilder();
 
     const User = new ModelDefinition(modelBuilder, 'User', {
@@ -68,21 +66,19 @@ describe('ModelDefinition class', function() {
     let json = User.toJSON();
 
     User.defineProperty('id', {type: 'number', id: true});
-    assert.equal(User.properties.name.type, String);
-    assert.equal(User.properties.bio.type, ModelBuilder.Text);
-    assert.equal(User.properties.approved.type, Boolean);
-    assert.equal(User.properties.joinedAt.type, Date);
-    assert.equal(User.properties.age.type, Number);
+    assert.strictEqual(User.properties.name.type, String);
+    assert.strictEqual(User.properties.bio.type, ModelBuilder.Text);
+    assert.strictEqual(User.properties.approved.type, Boolean);
+    assert.strictEqual(User.properties.joinedAt.type, Date);
+    assert.strictEqual(User.properties.age.type, Number);
 
-    assert.equal(User.properties.id.type, Number);
+    assert.strictEqual(User.properties.id.type, Number);
 
     json = User.toJSON();
-    assert.deepEqual(json.properties.id, {type: 'Number', id: true});
-
-    done();
+    assert.deepStrictEqual(json.properties.id, {type: 'Number', id: true});
   });
 
-  it('should be able to define nesting models', function(done) {
+  it('should be able to define nesting models', function() {
     const modelBuilder = new ModelBuilder();
 
     const User = new ModelDefinition(modelBuilder, 'User', {
@@ -100,30 +96,28 @@ describe('ModelDefinition class', function() {
     });
 
     User.build();
-    assert.equal(User.properties.name.type, String);
-    assert.equal(User.properties.bio.type, ModelBuilder.Text);
-    assert.equal(User.properties.approved.type, Boolean);
-    assert.equal(User.properties.joinedAt.type, Date);
-    assert.equal(User.properties.age.type, Number);
-    assert.equal(typeof User.properties.address.type, 'function');
+    assert.strictEqual(User.properties.name.type, String);
+    assert.strictEqual(User.properties.bio.type, ModelBuilder.Text);
+    assert.strictEqual(User.properties.approved.type, Boolean);
+    assert.strictEqual(User.properties.joinedAt.type, Date);
+    assert.strictEqual(User.properties.age.type, Number);
+    assert.strictEqual(typeof User.properties.address.type, 'function');
 
     const json = User.toJSON();
-    assert.equal(json.name, 'User');
-    assert.equal(json.properties.name.type, 'String');
-    assert.equal(json.properties.bio.type, 'Text');
-    assert.equal(json.properties.approved.type, 'Boolean');
-    assert.equal(json.properties.joinedAt.type, 'Date');
-    assert.equal(json.properties.age.type, 'Number');
+    assert.strictEqual(json.name, 'User');
+    assert.strictEqual(json.properties.name.type, 'String');
+    assert.strictEqual(json.properties.bio.type, 'Text');
+    assert.strictEqual(json.properties.approved.type, 'Boolean');
+    assert.strictEqual(json.properties.joinedAt.type, 'Date');
+    assert.strictEqual(json.properties.age.type, 'Number');
 
-    assert.deepEqual(json.properties.address.type, {street: {type: 'String'},
+    assert.deepStrictEqual(json.properties.address.type, {street: {type: 'String'},
       city: {type: 'String'},
       zipCode: {type: 'String'},
       state: {type: 'String'}});
-
-    done();
   });
 
-  it('should be able to define referencing models', function(done) {
+  it('should be able to define referencing models', function() {
     const modelBuilder = new ModelBuilder();
 
     const Address = modelBuilder.define('Address', {
@@ -143,27 +137,25 @@ describe('ModelDefinition class', function() {
     });
 
     User.build();
-    assert.equal(User.properties.name.type, String);
-    assert.equal(User.properties.bio.type, ModelBuilder.Text);
-    assert.equal(User.properties.approved.type, Boolean);
-    assert.equal(User.properties.joinedAt.type, Date);
-    assert.equal(User.properties.age.type, Number);
-    assert.equal(User.properties.address.type, Address);
+    assert.strictEqual(User.properties.name.type, String);
+    assert.strictEqual(User.properties.bio.type, ModelBuilder.Text);
+    assert.strictEqual(User.properties.approved.type, Boolean);
+    assert.strictEqual(User.properties.joinedAt.type, Date);
+    assert.strictEqual(User.properties.age.type, Number);
+    assert.strictEqual(User.properties.address.type, Address);
 
     const json = User.toJSON();
-    assert.equal(json.name, 'User');
-    assert.equal(json.properties.name.type, 'String');
-    assert.equal(json.properties.bio.type, 'Text');
-    assert.equal(json.properties.approved.type, 'Boolean');
-    assert.equal(json.properties.joinedAt.type, 'Date');
-    assert.equal(json.properties.age.type, 'Number');
+    assert.strictEqual(json.name, 'User');
+    assert.strictEqual(json.properties.name.type, 'String');
+    assert.strictEqual(json.properties.bio.type, 'Text');
+    assert.strictEqual(json.properties.approved.type, 'Boolean');
+    assert.strictEqual(json.properties.joinedAt.type, 'Date');
+    assert.strictEqual(json.properties.age.type, 'Number');
 
-    assert.equal(json.properties.address.type, 'Address');
-
-    done();
+    assert.strictEqual(json.properties.address.type, 'Address');
   });
 
-  it('should be able to define referencing models by name', function(done) {
+  it('should be able to define referencing models by name', function() {
     const modelBuilder = new ModelBuilder();
 
     const Address = modelBuilder.define('Address', {
@@ -183,27 +175,25 @@ describe('ModelDefinition class', function() {
     });
 
     User.build();
-    assert.equal(User.properties.name.type, String);
-    assert.equal(User.properties.bio.type, ModelBuilder.Text);
-    assert.equal(User.properties.approved.type, Boolean);
-    assert.equal(User.properties.joinedAt.type, Date);
-    assert.equal(User.properties.age.type, Number);
-    assert.equal(User.properties.address.type, Address);
+    assert.strictEqual(User.properties.name.type, String);
+    assert.strictEqual(User.properties.bio.type, ModelBuilder.Text);
+    assert.strictEqual(User.properties.approved.type, Boolean);
+    assert.strictEqual(User.properties.joinedAt.type, Date);
+    assert.strictEqual(User.properties.age.type, Number);
+    assert.strictEqual(User.properties.address.type, Address);
 
     const json = User.toJSON();
-    assert.equal(json.name, 'User');
-    assert.equal(json.properties.name.type, 'String');
-    assert.equal(json.properties.bio.type, 'Text');
-    assert.equal(json.properties.approved.type, 'Boolean');
-    assert.equal(json.properties.joinedAt.type, 'Date');
-    assert.equal(json.properties.age.type, 'Number');
+    assert.strictEqual(json.name, 'User');
+    assert.strictEqual(json.properties.name.type, 'String');
+    assert.strictEqual(json.properties.bio.type, 'Text');
+    assert.strictEqual(json.properties.approved.type, 'Boolean');
+    assert.strictEqual(json.properties.joinedAt.type, 'Date');
+    assert.strictEqual(json.properties.age.type, 'Number');
 
-    assert.equal(json.properties.address.type, 'Address');
-
-    done();
+    assert.strictEqual(json.properties.address.type, 'Address');
   });
 
-  it('should report correct id names', function(done) {
+  it('should report correct id names', function() {
     const modelBuilder = new ModelBuilder();
 
     const User = new ModelDefinition(modelBuilder, 'User', {
@@ -215,9 +205,8 @@ describe('ModelDefinition class', function() {
       age: 'number',
     });
 
-    assert.equal(User.idName(), 'userId');
-    assert.deepEqual(User.idNames(), ['userId']);
-    done();
+    assert.strictEqual(User.idName(), 'userId');
+    assert.deepStrictEqual(User.idNames(), ['userId']);
   });
 
   it('should sort id properties by its index', function() {
@@ -242,7 +231,7 @@ describe('ModelDefinition class', function() {
     assert.equal(ids[1].name, 'userId');
   });
 
-  it('should report correct table/column names', function(done) {
+  it('should report correct table/column names', function() {
     const modelBuilder = new ModelBuilder();
 
     const User = new ModelDefinition(modelBuilder, 'User', {
@@ -250,52 +239,44 @@ describe('ModelDefinition class', function() {
       name: 'string',
     }, {oracle: {table: 'USER'}});
 
-    assert.equal(User.tableName('oracle'), 'USER');
-    assert.equal(User.tableName('mysql'), 'User');
-    assert.equal(User.columnName('oracle', 'userId'), 'ID');
-    assert.equal(User.columnName('mysql', 'userId'), 'userId');
-    done();
+    assert.strictEqual(User.tableName('oracle'), 'USER');
+    assert.strictEqual(User.tableName('mysql'), 'User');
+    assert.strictEqual(User.columnName('oracle', 'userId'), 'ID');
+    assert.strictEqual(User.columnName('mysql', 'userId'), 'userId');
   });
 
   describe('maxDepthOfQuery', function() {
-    it('should report errors for deep query than maxDepthOfQuery', function(done) {
+    it('should report errors for deep query than maxDepthOfQuery', async function() {
       const MyModel = memory.createModel('my-model', {}, {
         maxDepthOfQuery: 5,
       });
 
       const filter = givenComplexFilter();
 
-      MyModel.find(filter, function(err) {
-        should.exist(err);
-        err.message.should.match('The query object exceeds maximum depth 5');
-        done();
-      });
+      await assert.rejects(
+        MyModel.find(filter),
+        /The query object exceeds maximum depth 5/,
+      );
     });
 
-    it('should honor maxDepthOfQuery setting', function(done) {
+    it('should honor maxDepthOfQuery setting', async function() {
       const MyModel = memory.createModel('my-model', {}, {
         maxDepthOfQuery: 20,
       });
 
       const filter = givenComplexFilter();
 
-      MyModel.find(filter, function(err) {
-        should.not.exist(err);
-        done();
-      });
+      await MyModel.find(filter);
     });
 
-    it('should honor maxDepthOfQuery in options', function(done) {
+    it('should honor maxDepthOfQuery in options', async function() {
       const MyModel = memory.createModel('my-model', {}, {
         maxDepthOfQuery: 5,
       });
 
       const filter = givenComplexFilter();
 
-      MyModel.find(filter, {maxDepthOfQuery: 20}, function(err) {
-        should.not.exist(err);
-        done();
-      });
+      await MyModel.find(filter, {maxDepthOfQuery: 20});
     });
 
     function givenComplexFilter() {
@@ -318,29 +299,22 @@ describe('ModelDefinition class', function() {
     });
   });
 
-  it('should not serialize protected properties of nested models into JSON', function(done) {
+  it('should not serialize protected properties of nested models into JSON', async function() {
     const Parent = memory.createModel('parent');
     const Child = memory.createModel('child', {}, {protected: ['protectedProperty']});
     Parent.hasMany(Child);
-    Parent.create({
+    const parent = await Parent.create({
       name: 'parent',
-    }, function(err, parent) {
-      if (err) return done(err);
-      parent.children.create({
-        name: 'child',
-        protectedProperty: 'protectedValue',
-      }, function(err, child) {
-        if (err) return done(err);
-        Parent.find({include: 'children'}, function(err, parents) {
-          if (err) return done(err);
-          const serialized = parents[0].toJSON();
-          const child = serialized.children[0];
-          assert.equal(child.name, 'child');
-          assert.notEqual(child.protectedProperty, 'protectedValue');
-          done();
-        });
-      });
     });
+    await parent.children.create({
+      name: 'child',
+      protectedProperty: 'protectedValue',
+    });
+    const parents = await Parent.find({include: 'children'});
+    const serialized = parents[0].toJSON();
+    const child = serialized.children[0];
+    assert.strictEqual(child.name, 'child');
+    assert.notStrictEqual(child.protectedProperty, 'protectedValue');
   });
 
   it('should not serialize hidden properties into JSON', function() {
@@ -359,29 +333,22 @@ describe('ModelDefinition class', function() {
     });
   });
 
-  it('should not serialize hidden properties of nested models into JSON', function(done) {
+  it('should not serialize hidden properties of nested models into JSON', async function() {
     const Parent = memory.createModel('parent');
     const Child = memory.createModel('child', {}, {hidden: ['secret']});
     Parent.hasMany(Child);
-    Parent.create({
+    const parent = await Parent.create({
       name: 'parent',
-    }, function(err, parent) {
-      if (err) return done(err);
-      parent.children.create({
-        name: 'child',
-        secret: 'secret',
-      }, function(err, child) {
-        if (err) return done(err);
-        Parent.find({include: 'children'}, function(err, parents) {
-          if (err) return done(err);
-          const serialized = parents[0].toJSON();
-          const child = serialized.children[0];
-          assert.equal(child.name, 'child');
-          assert.notEqual(child.secret, 'secret');
-          done();
-        });
-      });
     });
+    await parent.children.create({
+      name: 'child',
+      secret: 'secret',
+    });
+    const parents = await Parent.find({include: 'children'});
+    const serialized = parents[0].toJSON();
+    const child = serialized.children[0];
+    assert.strictEqual(child.name, 'child');
+    assert.notStrictEqual(child.secret, 'secret');
   });
 
   describe('hidden properties', function() {
@@ -405,7 +372,7 @@ describe('ModelDefinition class', function() {
       it('should be allowed for update', function() {
         return Child.update({name: 'childA'}, {secret: 'new-secret'}, optionsFromRemoteReq).then(
           function(result) {
-            result.count.should.equal(1);
+            assert.strictEqual(result.count, 1);
           },
         );
       });
@@ -415,8 +382,8 @@ describe('ModelDefinition class', function() {
         return Child.find({
           where: {secret: 'guess'},
         }).then(function(children) {
-          children.length.should.equal(1);
-          children[0].secret.should.equal('guess');
+          assert.strictEqual(children.length, 1);
+          assert.strictEqual(children[0].secret, 'guess');
         });
       });
 
@@ -424,8 +391,8 @@ describe('ModelDefinition class', function() {
         return Child.find({
           where: {secret: 'guess'},
         }).then(function(children) {
-          children.length.should.equal(1);
-          children[0].secret.should.equal('guess');
+          assert.strictEqual(children.length, 1);
+          assert.strictEqual(children[0].secret, 'guess');
         });
       });
 
@@ -435,8 +402,8 @@ describe('ModelDefinition class', function() {
         }, {
           prohibitHiddenPropertiesInQuery: false,
         }).then(function(children) {
-          children.length.should.equal(1);
-          children[0].secret.should.equal('guess');
+          assert.strictEqual(children.length, 1);
+          assert.strictEqual(children[0].secret, 'guess');
         });
       });
     });
@@ -479,7 +446,7 @@ describe('ModelDefinition class', function() {
     function assertHiddenPropertyIsIgnored(children) {
       // All children are found whether the `secret` condition matches or not
       // as the condition is removed because it's hidden
-      children.length.should.equal(2);
+      assert.strictEqual(children.length, 2);
     }
   });
 
@@ -546,12 +513,12 @@ describe('ModelDefinition class', function() {
     function assertHiddenPropertyIsIgnored(children) {
       // All children are found whether the `secret` condition matches or not
       // as the condition is removed because it's hidden
-      children.length.should.equal(2);
+      assert.strictEqual(children.length, 2);
     }
   });
 
   function assertParentIncludeChildren(parents) {
-    parents[0].toJSON().children.length.should.equal(1);
+    assert.strictEqual(parents[0].toJSON().children.length, 1);
   }
 
   describe('protected properties', function() {
@@ -647,9 +614,10 @@ describe('ModelDefinition class', function() {
   });
 
   it('should throw error for property names containing dot', function() {
-    (function() { memory.createModel('Dotted', {'dot.name': String}); })
-      .should
-      .throw(/dot\(s\).*Dotted.*dot\.name/);
+    assert.throws(
+      function() { memory.createModel('Dotted', {'dot.name': String}); },
+      /dot\(s\).*Dotted.*dot\.name/,
+    );
   });
 
   it('should report deprecation warning for property named constructor', function() {
@@ -658,25 +626,24 @@ describe('ModelDefinition class', function() {
 
     memory.createModel('Ctor', {'constructor': String});
 
-    message.should.match(/Property name should not be "constructor" in Model: Ctor/);
+    assert.match(message, /Property name should not be "constructor" in Model: Ctor/);
   });
 
   it('should throw error for dynamic property names containing dot',
-    function(done) {
+    async function() {
       const Model = memory.createModel('DynamicDotted');
-      Model.create({'dot.name': 'dot.value'}, function(err) {
-        err.should.be.instanceOf(Error);
-        err.message.should.match(/dot\(s\).*DynamicDotted.*dot\.name/);
-        done();
-      });
+      await assert.rejects(
+        Model.create({'dot.name': 'dot.value'}),
+        /dot\(s\).*DynamicDotted.*dot\.name/,
+      );
     });
 
-  it('should throw error for dynamic property named constructor', function(done) {
+  it('should throw error for dynamic property named constructor', async function() {
     const Model = memory.createModel('DynamicCtor');
-    Model.create({'constructor': 'myCtor'}, function(err) {
-      assert.equal(err.message, 'Property name "constructor" is not allowed in DynamicCtor data');
-      done();
-    });
+    await assert.rejects(
+      Model.create({'constructor': 'myCtor'}),
+      /Property name "constructor" is not allowed in DynamicCtor data/,
+    );
   });
 
   it('should support "array" type shortcut', function() {
@@ -686,11 +653,11 @@ describe('ModelDefinition class', function() {
     });
 
     const props = Model.definition.properties;
-    props.regular.type.should.equal(props.sugar.type);
+    assert.strictEqual(props.regular.type, props.sugar.type);
   });
 
-  context('hasPK', function() {
-    context('with primary key defined', function() {
+  describe('hasPK', function() {
+    describe('with primary key defined', function() {
       let Todo;
       before(function prepModel() {
         Todo = new ModelDefinition(new ModelBuilder(), 'Todo', {
@@ -704,11 +671,11 @@ describe('ModelDefinition class', function() {
       });
 
       it('should return true', function() {
-        Todo.hasPK().should.be.ok;
+        assert.ok(Todo.hasPK());
       });
     });
 
-    context('without primary key defined', function() {
+    describe('without primary key defined', function() {
       let Todo;
       before(function prepModel() {
         Todo = new ModelDefinition(new ModelBuilder(), 'Todo', {
@@ -718,7 +685,7 @@ describe('ModelDefinition class', function() {
       });
 
       it('should return false', function() {
-        Todo.hasPK().should.not.be.ok;
+        assert.ok(!Todo.hasPK());
       });
     });
   });
