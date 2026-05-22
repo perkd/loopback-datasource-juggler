@@ -11,13 +11,16 @@ module.exports = [
     ignores: [
       'coverage/**',
       'dist/**',
+      '.yarn/**',
+      'plans/**',
+      'support/**',
     ],
   },
   // Main configuration for all JS files
   {
     files: ['**/*.js'],
     languageOptions: {
-      ecmaVersion: 2018,
+      ecmaVersion: 2022,
       sourceType: 'script',
       globals: {
         // Node.js globals
@@ -30,15 +33,6 @@ module.exports = [
         require: 'readonly',
         __dirname: 'readonly',
         __filename: 'readonly',
-        // Mocha globals
-        describe: 'readonly',
-        it: 'readonly',
-        before: 'readonly',
-        after: 'readonly',
-        beforeEach: 'readonly',
-        afterEach: 'readonly',
-        context: 'readonly',
-        specify: 'readonly',
         // Timer functions
         setTimeout: 'readonly',
         clearTimeout: 'readonly',
@@ -55,7 +49,7 @@ module.exports = [
       'comma-dangle': ['error', 'always-multiline'],
       'no-cond-assign': 'error',
       'no-console': 'off',
-      'no-unused-expressions': 'error',
+      'no-unused-expressions': ['error', {allowShortCircuit: true}],
       'no-const-assign': 'error',
       'array-bracket-spacing': ['error', 'never'],
       'block-spacing': ['error', 'always'],
@@ -76,8 +70,6 @@ module.exports = [
         ignoreUrls: true,
         ignorePattern: '^\\s*var\\s.+=\\s*(require\\s*\\()|(/)',
       }],
-      // Note: Mocha plugin rules removed for compatibility with ESLint v9
-      // These can be re-added when eslint-plugin-mocha is updated for flat config
       'no-array-constructor': 2,
       'no-extra-semi': 'error',
       'no-multi-spaces': 'error',
@@ -107,6 +99,12 @@ module.exports = [
         block: {balanced: true, markers: ['!'], exceptions: ['*']},
       }],
       'strict': ['error', 'global'],
+    },
+  },
+  {
+    files: ['test/**/*.js'],
+    rules: {
+      'max-len': 'off',
     },
   },
 ];
