@@ -1,15 +1,17 @@
 {
   "$schema": "http://json.schemastore.org/tsconfig",
   "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "target": "ES2023",
+    "lib": ["ES2023", "dom"],
+    "types": ["node"],
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
-
-    "lib": ["es2018", "dom"],
-    "module": "commonjs",
-    "moduleResolution": "node",
-    "target": "es2017",
+    "ignoreDeprecations": "6.0",
+    "rootDir": ".",
     "sourceMap": true,
     "declaration": true
   },
