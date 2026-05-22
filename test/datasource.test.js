@@ -637,6 +637,87 @@ describe('DataSource', function() {
     });
   });
 
+  describe('connector detachment safeguards', () => {
+    it('fails fast when the connector back-reference is cleared', async () => {
+      const {ds, Model} = givenQueryableModel();
+      await ds.connect();
+
+      ds.connector.dataSource = null;
+
+      await Model.find().should.be.rejectedWith({
+        code: 'CONNECTOR_DETACHED',
+      });
+    });
+
+    it('fails fast when the connector back-reference is undefined', async () => {
+      const {ds, Model} = givenQueryableModel();
+      await ds.connect();
+
+      ds.connector.dataSource = undefined;
+
+      await Model.find().should.be.rejectedWith({
+        code: 'CONNECTOR_DETACHED',
+      });
+    });
+
+    it('fails fast when the model datasource is cleared', function(done) {
+      const {Model} = givenQueryableModel();
+      Model.dataSource = null;
+
+      Model.find(function(err) {
+        should.exist(err);
+        err.code.should.equal('CONNECTOR_DETACHED');
+        done();
+      });
+    });
+
+    it('reports a descriptive error from getConnector when detached', function() {
+      const {Model} = givenQueryableModel();
+      Model.dataSource = null;
+
+      (function() {
+        return Model.getConnector();
+      }).should.throw({
+        code: 'CONNECTOR_DETACHED',
+      });
+    });
+
+    it('rejects stale model reuse after datasource teardown', async () => {
+      const state = {allCalls: 0, disconnectCalls: 0};
+      const {ds, Model} = givenQueryableModel({
+        disconnect: function(cb) {
+          state.disconnectCalls++;
+          process.nextTick(() => cb(null));
+        },
+        all: function(model, filter, options, cb) {
+          state.allCalls++;
+          process.nextTick(() => cb(null, []));
+        },
+      });
+      const staleModel = Model;
+
+      await ds.connect();
+      await ds.disconnect();
+      ds.connected.should.be.false();
+
+      // Simulate tenant teardown severing the connector back-reference while
+      // shared model code still holds on to the old model class.
+      ds.connector.dataSource = null;
+
+      await staleModel.find().should.be.rejectedWith({
+        code: 'CONNECTOR_DETACHED',
+      });
+      state.disconnectCalls.should.equal(1);
+      state.allCalls.should.equal(0);
+    });
+
+    it('keeps healthy connector wiring working for find', async () => {
+      const {Model} = givenQueryableModel();
+
+      await Model.find().should.be.fulfilledWith([]);
+    });
+  });
+
   describe('getMaxOfflineRequests', () => {
     let ds;
     beforeEach(() => ds = new DataSource('ds', {connector: 'memory'}));
@@ -674,4 +755,23 @@ function givenMockConnector(props) {
     ...props,
   };
   return connector;
+}
+
+function givenQueryableModel(connectorProps) {
+  const ds = new DataSource({
+    connector: givenMockConnector({
+      connect: function(cb) {
+        process.nextTick(() => cb(null));
+      },
+      all: function(model, filter, options, cb) {
+        process.nextTick(() => cb(null, []));
+      },
+      ...connectorProps,
+    }),
+  });
+
+  return {
+    ds: ds,
+    Model: ds.define('AttachedModel', {name: String}),
+  };
 }
