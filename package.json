@@ -1,6 +1,6 @@
 {
   "name": "loopback-datasource-juggler",
-  "version": "5.2.11",
+  "version": "5.2.12",
   "publishConfig": {
     "export-tests": true
   },
