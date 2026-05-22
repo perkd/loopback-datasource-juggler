@@ -481,22 +481,24 @@ assert.equal(foundModel, null); // ✅ PASS: No cross-tenant access
 
 ### A. Test Execution Results
 
+Updated for v6.0.0 (`node:test` runner, see [MODERNIZE.md](../../MODERNIZE.md)).
+
 ```bash
 # Tenant-Aware Model Registry Tests
-$ npx mocha test/tenant-aware-model-registry.test.js
-✅ 27 passing (107ms)
+$ node --require ./test/init.js --test test/tenant-aware-model-registry.test.js
+✅ 27 passing
 
 # Model Registry Tests
-$ npx mocha test/model-registry.test.js
-✅ 48 passing (35ms)
+$ node --require ./test/init.js --test test/model-registry.test.js
+✅ 48 passing
 
 # Model Builder Tests
-$ npx mocha test/model-builder.test.js
-✅ 16 passing (19ms)
+$ node --require ./test/init.js --test test/model-builder.test.js
+✅ 16 passing
 
 # DataSource Tests
-$ npx mocha test/datasource.test.js
-✅ 36 passing (24ms)
+$ node --require ./test/init.js --test test/datasource.test.js
+✅ 42 passing
 ```
 
 ### B. Performance Benchmarks

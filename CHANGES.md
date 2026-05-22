@@ -1,3 +1,27 @@
+2026-05-23, Version 6.0.0
+=========================
+
+ * BREAKING CHANGE: drop Node.js 20 support — minimum engine bumped to `>=22`. CI matrix is now `[22, 24]` on ubuntu, 22 on macOS and Windows. (Young)
+
+ * BREAKING CHANGE: published `test/` tree now uses `node:test` instead of mocha (affects `publishConfig.export-tests: true` consumers). Connector packages running juggler's test tree under mocha (e.g. `loopback-connector-mongodb`'s `test:juggler:v5` script via `deps/juggler-v5/test.js`) must either pin to juggler `^5.x` or migrate their consumption to `node:test`. The shared suite files (`test/common.batch.js`, `test/persistence-hooks.suite.js`, `test/kvao/*.suite.js`, etc.) now import from `node:test` directly. (Young)
+
+ * refactor: migrate test framework `mocha + should + sinon + nyc` → `node:test` + `node:assert/strict` + `c8` — direct cutover, no compat layer. All 47 `.test.js` files plus shared `.suite.js` files migrated. `done`-callback tests rewritten as `async`/`await` where the juggler API supports both. `sinon` (2 sites) replaced with native counter pattern. (Young)
+
+ * refactor: drop `lodash` runtime dependency. `lib/scope.js` was the sole consumer (3 sites): `_.intersectionWith(idsA, idsB, _.isEqual)` → vanilla `filter`/`some` + `node:util.isDeepStrictEqual`; `_.isObject(x) && _.isEmpty(x)` → explicit type+key-count check; `_.omit(obj, key)` → `Object.fromEntries(Object.entries(...).filter(...))`. (Young)
+
+ * chore: pin floating CI actions — `coverallsapp/github-action` from `@master` to `5cbfd81b66ca5d10c19b062c04de0199c215fb6e` (v2.3.7); `github/codeql-action/{init,analyze}` to `051e2f90686233507fe9283ff167d2e709304b30` (v3.36.0); `actions/checkout` and `actions/setup-node` in the test and codeql jobs to SHA+tag matching the existing pins in `code-lint`/`commit-lint`. Switch commit-lint invocation from `yarn commitlint` to `yarn dlx commitlint --from origin/master --to HEAD --verbose`. (Young)
+
+ * chore: swap coverage tool `nyc@^18` → `c8@^11`. New `.c8rc.json` modelled on `loopback-connector-mongodb/.c8rc.json` (text/html/lcov/json reporters, `lib/**/*.js` + `index.js` include scope). CI step `yarn nyc report --reporter=lcov` → `yarn c8 report --reporter=lcov`; Coveralls upload path (`coverage/lcov.info`) unchanged. (Young)
+
+ * chore: add MODERNIZE.md documenting all phases of this modernization effort. Patterned on `loopback-connector-mongodb/MODERNIZE.md`. (Young)
+
+ * chore: remove `mocha`, `should`, `sinon`, `nyc`, `eslint-plugin-mocha` from devDependencies; delete `.mocharc.yaml`. Test script now `c8 node --require ./test/init.js --test --test-reporter=spec --test-timeout=10000 --test-concurrency=1 "test/**/*.test.js"`. Rename `test/kv-memory.js` → `test/kv-memory.test.js` so it matches the new glob. (Young)
+
+ * test: 1898 passing, 0 failing, 20 skipped (post-migration baseline under node:test).
+
+ * what was NOT done: `async` library kept in `lib/` (31 deeply-nested call sites in `lib/include.js`, `lib/dao.js`, `lib/relation-definition.js` — load-bearing for public callback API parallelism and error-aggregation semantics). Removal is a separate future effort. Library source (`lib/`) is otherwise unchanged: no prototypal→class, no callback→async/await refactor; public callback APIs preserved.
+
+
 2026-05-22, Version 5.2.12
 ==========================
 

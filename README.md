@@ -1,5 +1,27 @@
 # 🚀 LoopBack DataSource Juggler
 
+## v6.0.0 — Modernization (2026-05-23)
+
+Tooling and test infrastructure brought in line with the sibling `loopback-connector-mongodb` and `loopback-connector-remote` reference pattern. Library source (`lib/`) is intentionally unchanged: no prototypal→class, no callback→async/await refactor, public callback APIs preserved.
+
+**Breaking changes:**
+
+- **Node.js**: minimum engine bumped from `>=20` to `>=22`.
+- **Published `test/` tree** (via `publishConfig.export-tests: true`) now uses `node:test` instead of mocha. Connector packages that run juggler's test tree under mocha must pin to juggler `^5.x` or migrate their consumption to `node:test`.
+
+**Non-breaking modernization:**
+
+- Test framework: `mocha + should + sinon + nyc` → `node:test` + `node:assert/strict` + `c8`. Direct cutover, no compat layer. All 47 `.test.js` files + shared `.suite.js` files migrated. `done`-callback tests rewritten as `async`/`await` where the juggler API supports both.
+- Runtime dependency: `lodash` removed (sole consumer was `lib/scope.js`, 3 sites, replaced with vanilla JS + `node:util.isDeepStrictEqual`).
+- CI: floating actions pinned to SHA+tag; `coverallsapp` and `codeql-action` no longer track `@master`/`@v3`.
+- Coverage: `nyc` → `c8` with `.c8rc.json`.
+
+See [MODERNIZE.md](MODERNIZE.md) for the phase-by-phase breakdown and [CHANGES.md](CHANGES.md) for the full entry.
+
+The `async` runtime dependency is retained in `lib/` (31 deeply-nested call sites are load-bearing for public callback API parallelism and error-aggregation semantics); its removal is tracked as a separate future effort.
+
+---
+
 ## Multitenant DataSource Accessor Enhancement
 
 This release introduces a revolutionary enhancement that enables seamless multitenant datasource switching while maintaining 100% backward compatibility with existing LoopBack applications.
@@ -89,13 +111,13 @@ This is a private fork. Clone the repository and use the specific tag:
 ```bash
 git clone git@github.com:perkd/loopback-datasource-juggler.git
 cd loopback-datasource-juggler
-git checkout v5.2.10
+git checkout v6.0.0
 corepack enable
 yarn install --immutable
 ```
 
 ## Compatibility
 
-- **Node.js**: >=20
+- **Node.js**: >=22 (since v6.0.0; v5.x supports >=20)
 - **LoopBack**: 3.x, 4.x
-- **Backward Compatibility**: 100% maintained
+- **Public API backward compatibility**: 100% maintained (callback signatures and behavior unchanged). The v6.0.0 break is in the published `test/` tree only — see modernization section above.

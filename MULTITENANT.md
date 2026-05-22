@@ -25,6 +25,48 @@ This comprehensive enhancement transforms LoopBack into a fully multitenant-capa
 
 ---
 
+## 2026-05-23
+
+### **chore: Tooling and Test Infrastructure Modernization — Version 6.0.0**
+**Contributor:** Young (youngtt)
+**Status:** ✅ **COMPLETE** — 1898 passing, 0 failing, 20 skipped
+
+#### Scope
+
+Tooling-only modernization aligned with the `loopback-connector-mongodb` (v7.0.0) and `loopback-connector-remote` (v3.5.0) reference pattern. **The multitenant runtime — `lib/model-registry.js`, `lib/model-registry-proxy.js`, the DataSource accessor in `lib/datasource.js`, tenant-aware lookups — is functionally unchanged.** All multitenant tests continue to pass under the new runner.
+
+#### Changes affecting this document
+
+- Engine: `>=20` → `>=22`. Multitenant features remain compatible with all supported Node versions.
+- Test runner: `mocha + should + sinon + nyc` → `node:test` + `node:assert/strict` + `c8`. Multitenant test files migrated as part of the bulk cutover:
+  - `test/centralized-model-registry.test.js`
+  - `test/tenant-aware-model-registry.test.js`
+  - `test/model-registry.test.js`
+  - `test/model-registry-edge-cases.test.js`
+  - `test/multitenant-datasource-accessor.test.js`
+  - `test/cache-invalidation.test.js`
+  - `test/memory-leak-fixes.test.js`
+- `test/init.js` now stops the model-registry periodic cleanup interval and registers an `after()` hook to do the same after each file, so node:test exits cleanly without dangling intervals (this was unnecessary under mocha because mocha didn't propagate process-exit timing the same way).
+- Documented in [MODERNIZE.md](MODERNIZE.md). Full release notes in [CHANGES.md](CHANGES.md).
+
+#### Verification
+
+Multitenant-specific test counts (under `node --test`):
+
+| Test file | Tests |
+|---|---|
+| `test/centralized-model-registry.test.js` | 32 passing |
+| `test/tenant-aware-model-registry.test.js` | 27 passing |
+| `test/model-registry.test.js` | 48 passing |
+| `test/model-registry-edge-cases.test.js` | 17 passing |
+| `test/multitenant-datasource-accessor.test.js` | 16 passing |
+| `test/cache-invalidation.test.js` | 7 passing |
+| `test/memory-leak-fixes.test.js` | 9 passing |
+
+All multitenant invariants preserved: tenant isolation, centralized registry semantics, DataSource accessor fallback behavior, anonymous-vs-named model scoping.
+
+---
+
 ## 2026-05-22
 
 ### **fix: Detached Connector Safeguards — Version 5.2.12**
