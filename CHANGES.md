@@ -1,3 +1,8 @@
+2026-05-22, Version 5.2.12
+==========================
+
+ * fix: fail fast with CONNECTOR_DETACHED when model used after datasource teardown (Young)
+
 2025-02-11, Version 5.1.5
 =========================
 

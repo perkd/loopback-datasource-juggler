@@ -25,9 +25,54 @@ This comprehensive enhancement transforms LoopBack into a fully multitenant-capa
 
 ---
 
+## 2026-05-22
+
+### **fix: Detached Connector Safeguards — Version 5.2.12**
+**Contributor:** Young (youngtt)
+**Commit:** `f6eff22a0bfbab4b1751fc1f5eed94c668ca9e6d`
+**Status:** ✅ **COMPLETE** — 2323 passing, 0 failing
+
+#### Root Cause
+
+Production TypeError `Cannot read properties of null (reading 'connecting')` in `loopback-connector-mongodb` was caused by the perkd multitenant teardown in `server/lib/common/mixins/Multitenant.js` explicitly setting `connection.connector.dataSource = null` to allow GC of the disposed DataSource. However, shared/named models (e.g. `Membership`) still held a reference to the disposed DataSource and its connector. A subsequent request would call `connector.execute()` → `connector.connect()` → read `.connecting` on the null `dataSource` — an opaque use-after-free crash.
+
+#### Changes — `lib/dao.js`
+
+- **`invokeConnectorMethod`**: added guard at entry — if `connector.dataSource == null` (own property, covers both `null` and `undefined`), return async `CONNECTOR_DETACHED` error via `process.nextTick(cb)` before invoking any connector method.
+- **`stillConnecting`**: added guard at entry — if `dataSource` is falsy, deliver `CONNECTOR_DETACHED` error via callback or rejected promise rather than crashing on `dataSource.ready(...)`.
+- **`DataAccessObject.getConnector` (class method, line ~237)**: throws `CONNECTOR_DETACHED` when `getDataSource()` returns null/undefined.
+- **`DataAccessObject.prototype.getConnector` (instance method, line ~2720)**: same guard as above.
+- **`createDetachedConnectorError(method, modelName)`**: shared helper producing a consistent `Error` with `err.code = 'CONNECTOR_DETACHED'` and a descriptive message.
+
+#### Changes — `lib/kvao/index.js`
+
+- **`KeyValueAccessObject.getConnector`**: same guard — throws `CONNECTOR_DETACHED` when `getDataSource()` returns null/undefined. Added `require('strong-globalize')()` for i18n message formatting.
+
+#### Changes — `test/datasource.test.js`
+
+Five new tests in `describe('connector detachment safeguards')`:
+1. Fails fast when `connector.dataSource = null` (the exact production failure).
+2. Fails fast when `connector.dataSource = undefined`.
+3. Fails fast when `Model.dataSource = null`.
+4. `getConnector()` throws `CONNECTOR_DETACHED` when model datasource is cleared.
+5. Lifecycle test: connect → disconnect → null the back-reference → `find()` is rejected with `CONNECTOR_DETACHED`; confirms `all()` was never called.
+
+#### Why no regressions
+
+- Guard condition is `connector.dataSource == null && hasOwnProperty('dataSource')` — only fires when null/undefined has been **explicitly assigned** on the connector instance. Every healthy code path leaves `connector.dataSource` pointing to the owning DataSource.
+- `invokeConnectorMethod` is internal; all 18 call sites pass a live connector in normal operation.
+- Behaviour change: calling DAO methods on a null-DataSource model previously threw a synchronous `TypeError` deep in the connector; now delivers a structured async error. No existing test depended on the old crash behaviour.
+- Full suite: **2323 passing, 0 failing**.
+
+#### Follow-up (app-side, separate ticket)
+
+The `connection.connector.dataSource = null` line in `Multitenant.js:442` (present in all perkd microservices) should be removed. The connection is already removed from `connectionManager._connections` on the same teardown path, which is sufficient to prevent reuse. Removing the null assignment eliminates the root trigger while the juggler-side guard remains as a defensive safety net.
+
+---
+
 ## 2025-07-09
 
-### 🚀 **Multitenant DataSource Accessor Enhancement - IMPLEMENTED & FUNCTIONAL**
+### **Multitenant DataSource Accessor Enhancement**
 **Contributors:** Young (youngtt)
 **Status:** ✅ **COMPLETE** - All tests passing, production ready
 

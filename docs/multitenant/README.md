@@ -122,8 +122,42 @@ These tests validate:
 
 ### Comprehensive Test Suite
 - **32/32 centralized registry tests** passing
-- **2360 total tests** passing (with 158 pending)
+- **2323 total tests** passing (with 158 pending) — as of v5.2.12
 - Full coverage of core functionality, edge cases, and integration scenarios
+
+## Detached Connector Safeguard (v5.2.12)
+
+When a multitenant teardown disposes a DataSource (e.g. by setting `connector.dataSource = null` or nulling `Model.dataSource`), any subsequent DAO call on a stale model reference will now fail with a descriptive error instead of crashing deep in the connector with an opaque `TypeError`.
+
+### Error code: `CONNECTOR_DETACHED`
+
+```js
+// Example: connector back-reference cleared during tenant teardown
+connection.connector.dataSource = null;
+
+// Next call on a stale model:
+Membership.find(function(err) {
+  // err.code === 'CONNECTOR_DETACHED'
+  // err.message: "Cannot invoke all on model Membership:
+  //               the model is no longer attached to an active datasource"
+});
+```
+
+### What is guarded
+
+| Location | File | Behaviour |
+|---|---|---|
+| `invokeConnectorMethod` | `lib/dao.js` | Async `cb(err)` via `process.nextTick` |
+| `stillConnecting` | `lib/dao.js` | Async `cb(err)` or rejected promise |
+| `DataAccessObject.getConnector` (static) | `lib/dao.js` | Synchronous `throw` |
+| `DataAccessObject.prototype.getConnector` | `lib/dao.js` | Synchronous `throw` |
+| `KeyValueAccessObject.getConnector` | `lib/kvao/index.js` | Synchronous `throw` |
+
+The guard only fires when `connector.dataSource` or `Model.dataSource` has been **explicitly assigned `null` or `undefined`**. Healthy code paths — where the DataSource is live — are unaffected (one property check per call, zero allocations on the happy path).
+
+### Recommended app-side fix
+
+Remove the explicit `connector.dataSource = null` assignment from teardown code. Removing the connection from the connection manager's internal map is sufficient to prevent reuse. The juggler guard remains as a safety net.
 
 ## Documentation Accuracy
 
