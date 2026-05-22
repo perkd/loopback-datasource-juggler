@@ -1,6 +1,15 @@
 2026-05-23, Version 6.0.0
 =========================
 
+ * fix: extend detached-connector safeguard to cover getConnector() and KVAO paths (Young)
+
+   `f6eff22` protected the main DAO invocation path (`invokeConnectorMethod`) against the "connector present but `connector.dataSource` back-reference cleared" scenario, but left two gaps:
+
+   - `DataAccessObject.getConnector` and `DataAccessObject.prototype.getConnector` only checked `!dataSource`, missing the detached-backref case.
+   - All KVAO methods (`get`, `set`, `delete`, `deleteAll`, `expire`, `ttl`) called `KeyValueAccessObject.getConnector()` synchronously before returning their promise, causing a synchronous throw rather than a rejected promise.
+
+   Fix: `stillConnecting()` now applies the same three-part guard (`!dataSource || !connector || connector.dataSource == null`) used by `invokeConnectorMethod`, covering all 13 DAO call sites in one place. Both `getConnector()` implementations gain the same guard. A `_getConnector(cb)` helper on `KeyValueAccessObject` wraps the throw into `process.nextTick(cb, err)`, keeping the KVAO async contract intact. Two focused regression tests added: direct `Model.getConnector()` call and `Model.get('key')` after back-reference is cleared.
+
  * BREAKING CHANGE: drop Node.js 20 support — minimum engine bumped to `>=22`. CI matrix is now `[22, 24]` on ubuntu, 22 on macOS and Windows. (Young)
 
  * BREAKING CHANGE: published `test/` tree now uses `node:test` instead of mocha (affects `publishConfig.export-tests: true` consumers). Connector packages running juggler's test tree under mocha (e.g. `loopback-connector-mongodb`'s `test:juggler:v5` script via `deps/juggler-v5/test.js`) must either pin to juggler `^5.x` or migrate their consumption to `node:test`. The shared suite files (`test/common.batch.js`, `test/persistence-hooks.suite.js`, `test/kvao/*.suite.js`, etc.) now import from `node:test` directly. (Young)
@@ -17,7 +26,7 @@
 
  * chore: remove `mocha`, `should`, `sinon`, `nyc`, `eslint-plugin-mocha` from devDependencies; delete `.mocharc.yaml`. Test script now `c8 node --require ./test/init.js --test --test-reporter=spec --test-timeout=10000 --test-concurrency=1 "test/**/*.test.js"`. Rename `test/kv-memory.js` → `test/kv-memory.test.js` so it matches the new glob. (Young)
 
- * test: 1898 passing, 0 failing, 20 skipped (post-migration baseline under node:test).
+ * test: 1900 passing, 0 failing, 20 skipped (post-migration baseline under node:test).
 
  * what was NOT done: `async` library kept in `lib/` (31 deeply-nested call sites in `lib/include.js`, `lib/dao.js`, `lib/relation-definition.js` — load-bearing for public callback API parallelism and error-aggregation semantics). Removal is a separate future effort. Library source (`lib/`) is otherwise unchanged: no prototypal→class, no callback→async/await refactor; public callback APIs preserved.
 
