@@ -7,6 +7,7 @@
 
 const {describe, it, beforeEach, afterEach} = require('node:test');
 const assert = require('node:assert/strict');
+const EventEmitter = require('node:events');
 const DataSource = require('../lib/datasource.js').DataSource;
 
 describe('Multitenant DataSource Accessor Fix', function() {
@@ -238,6 +239,118 @@ describe('Multitenant DataSource Accessor Fix', function() {
       // Should return null as returned by getDataSource()
       const ds = TestModel.dataSource;
       assert.equal(ds, null);
+    });
+  });
+
+  describe('DAO Resolution', function() {
+    // Each DAO entry point must resolve through Model.getDataSource() on every
+    // call. Asserted per-operation as a delta so a regression in any single
+    // path (e.g. create caches but find still resolves) is caught — a global
+    // lower bound across all three ops would miss that.
+
+    let Model, calls;
+
+    beforeEach(function() {
+      Model = dataSource.define('DaoModel', {name: 'string'});
+      calls = 0;
+      Model.getDataSource = function() {
+        calls++;
+        return dataSource;
+      };
+    });
+
+    // Each op runs twice and the second-call delta is asserted. Second call
+    // (not first) is the right signal: any regression that memoizes the
+    // DataSource on the Model after warmup would yield zero on the second
+    // call while still calling on the first. The threshold is conservative
+    // (>= 3) — current second-call deltas are create=9, find=7, count=6, so
+    // wholesale memoization of any single op (drops to 0–1) is caught
+    // without coupling to the exact internal call count.
+
+    async function deltaAround(op) {
+      const start = calls;
+      await op();
+      return calls - start;
+    }
+
+    const MIN_CALLS_PER_OP = 3;
+
+    it('create() consults getDataSource() on every call', async function() {
+      await Model.create({name: 'a'});
+      const second = await deltaAround(() => Model.create({name: 'b'}));
+      assert.ok(second >= MIN_CALLS_PER_OP, `create() second-call delta=${second}, expected >= ${MIN_CALLS_PER_OP} (regression would drop to 0–1)`);
+    });
+
+    it('find() consults getDataSource() on every call', async function() {
+      await Model.find();
+      const second = await deltaAround(() => Model.find());
+      assert.ok(second >= MIN_CALLS_PER_OP, `find() second-call delta=${second}, expected >= ${MIN_CALLS_PER_OP}`);
+    });
+
+    it('count() consults getDataSource() on every call', async function() {
+      await Model.count();
+      const second = await deltaAround(() => Model.count());
+      assert.ok(second >= MIN_CALLS_PER_OP, `count() second-call delta=${second}, expected >= ${MIN_CALLS_PER_OP}`);
+    });
+  });
+
+  describe('ReconnectingProxy contract', function() {
+    // Pins the contract CRM's Multitenant mixin depends on: stillConnecting()
+    // calls ready(obj, args) on whatever getDataSource() returns, and a
+    // non-DataSource object that returns true from ready() can queue a DAO
+    // invocation and replay it via args.callee when ready.
+
+    function makeReconnectingProxy(realDataSource) {
+      // Minimal mirror of CRM/business/server/lib/common/mixins/Multitenant.js:40-119
+      const proxy = new EventEmitter();
+      proxy.connected = false;
+      proxy.connector = realDataSource.connector; // satisfies stillConnecting()'s connector check
+      proxy.settings = realDataSource.settings || {};
+      proxy.ready = function(obj, args) {
+        if (proxy.connected) return false;
+        proxy._readyCalls = (proxy._readyCalls || 0) + 1;
+        proxy.once('connected', () => {
+          const method = args.callee;
+          method.apply(obj, [].slice.call(args));
+        });
+        return true;
+      };
+      return proxy;
+    }
+
+    it('queues a DAO call on a non-DataSource ready() proxy and replays on connected', async function() {
+      const Model = dataSource.define('ProxyModel', {name: 'string'});
+      const proxy = makeReconnectingProxy(dataSource);
+      let firstResolve = true;
+      Model.getDataSource = function() {
+        // First DAO read returns the proxy (cold-pool simulation);
+        // subsequent reads (after 'connected' fires) return the real DataSource.
+        if (firstResolve) { firstResolve = false; return proxy; }
+        return dataSource;
+      };
+
+      const createPromise = Model.create({name: 'queued'});
+
+      // Give stillConnecting() a tick to register the once('connected') listener.
+      await new Promise(resolve => setImmediate(resolve));
+      assert.equal(proxy._readyCalls, 1, 'ready() must be called on the proxy returned by getDataSource()');
+
+      // Prove the DAO call is actually blocked. Race the create against a
+      // sentinel that resolves on the next macrotask. If juggler regressed
+      // to "call ready() but continue immediately", create would resolve
+      // first and this assertion would fail.
+      const sentinel = new Promise(resolve => setTimeout(() => resolve('sentinel'), 10));
+      const winner = await Promise.race([
+        createPromise.then(() => 'create'),
+        sentinel,
+      ]);
+      assert.equal(winner, 'sentinel', 'create() must be blocked until proxy emits connected');
+
+      proxy.connected = true;
+      proxy.emit('connected');
+
+      const created = await createPromise;
+      assert.equal(created.name, 'queued', 'queued DAO call must replay after connected');
     });
   });
 
