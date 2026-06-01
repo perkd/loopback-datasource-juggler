@@ -25,6 +25,56 @@ This comprehensive enhancement transforms LoopBack into a fully multitenant-capa
 
 ---
 
+## 2026-06-01
+
+### **fix: Clone parented embedded model instances on cross-parent assignment**
+**Contributor:** GPT-5.5
+**Status:** ✅ **COMPLETE**
+
+#### Root Cause
+
+The `parentRef` enhancement records the owning model instance on embedded models through a non-enumerable `__parent` property. Anonymous model constructors are intentionally reused by the centralized registry, but embedded model **instances** must not be reused across two different parents. Reassigning the same embedded instance changes its `__parent` from the original model to the new model, which can cause confusing serialization, dirty-tracking, and memory-retention behavior.
+
+One common example is creating a new model from data copied off another model:
+
+```javascript
+const childPayment = await Payment.create({
+  currency: merchantPayment.currency,
+});
+```
+
+`merchantPayment.currency` is already an anonymous embedded model instance. Before this fix, juggler warned about the cross-parent reuse and then still reassigned the same instance to the new parent.
+
+#### Changes
+
+- Added `cloneParentedModelForParent()` in `lib/utils.js`.
+- Updated embedded property assignment in `lib/model-builder.js` to clone a parented embedded model instance when assigning it to a different parent.
+- Updated `lib/list.js` and embedded parent-reference handling in `lib/dao.js` so list items follow the same rule.
+- Constructor/model reuse remains unchanged. Only object instance reuse is prevented.
+
+#### Behavior
+
+```javascript
+walletPayment.currency = merchantPayment.currency;
+
+walletPayment.currency !== merchantPayment.currency; // true
+walletPayment.currency.toJSON(); // same data
+merchantPayment.currency.__parent === merchantPayment; // true
+walletPayment.currency.__parent === walletPayment; // true
+```
+
+Callers may still pass plain objects or serialized values directly. Explicit `toJSON()` at service level is still valid, but no longer required to avoid cross-parent reuse for embedded model instances.
+
+#### Verification
+
+Regression coverage was added to `test/parent-reference.test.js` for:
+
+- Embedded singleton assignment from one parent to another.
+- Embedded list construction from an item already owned by another parent.
+- Embedded list `push()` with an item already owned by another parent.
+
+---
+
 ## 2026-05-23
 
 ### **chore: Tooling and Test Infrastructure Modernization — Version 6.0.0**

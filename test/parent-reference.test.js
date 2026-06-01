@@ -202,6 +202,132 @@ describe('Parent Reference', function() {
       // The warning message should be in the expected format
       // but we won't assert on it since it might be suppressed
     });
+
+    it('should clone parented embedded model instances assigned to another parent', function() {
+      const Payment = modelBuilder.define('PaymentWithCurrency', {
+        name: String,
+        currency: {
+          code: String,
+          precision: Number,
+        },
+      }, {
+        parentRef: true,
+      });
+
+      const merchantPayment = new Payment({
+        name: 'merchant',
+        currency: {
+          code: 'SGD',
+          precision: 2,
+        },
+      });
+      const walletPayment = new Payment({name: 'wallet'});
+      const merchantCurrency = merchantPayment.currency;
+
+      consoleWarnCalls = [];
+      walletPayment.currency = merchantCurrency;
+
+      assert.notStrictEqual(walletPayment.currency, merchantCurrency);
+      assert.deepStrictEqual(walletPayment.currency.toJSON(), merchantCurrency.toJSON());
+      assert.strictEqual(merchantCurrency.__parent, merchantPayment);
+      assert.strictEqual(walletPayment.currency.__parent, walletPayment);
+      assert.strictEqual(consoleWarnCalls.length, 0);
+
+      walletPayment.currency.code = 'USD';
+      assert.strictEqual(merchantCurrency.code, 'SGD');
+    });
+
+    it('should clone parented embedded list items assigned to another parent', function() {
+      const Order = modelBuilder.define('OrderWithItems', {
+        name: String,
+        items: [{
+          sku: String,
+          quantity: Number,
+        }],
+      }, {
+        parentRef: true,
+      });
+
+      const firstOrder = new Order({
+        name: 'first',
+        items: [{
+          sku: 'SKU-1',
+          quantity: 1,
+        }],
+      });
+      const secondOrder = new Order({
+        name: 'second',
+        items: [firstOrder.items[0]],
+      });
+
+      assert.notStrictEqual(secondOrder.items[0], firstOrder.items[0]);
+      assert.deepStrictEqual(secondOrder.items[0].toJSON(), firstOrder.items[0].toJSON());
+      assert.strictEqual(firstOrder.items[0].__parent, firstOrder);
+      assert.strictEqual(secondOrder.items[0].__parent, secondOrder);
+    });
+
+    it('should clone parented embedded list items pushed to another parent list', function() {
+      const Order = modelBuilder.define('OrderWithPushItems', {
+        name: String,
+        items: [{
+          sku: String,
+          quantity: Number,
+        }],
+      }, {
+        parentRef: true,
+      });
+
+      const firstOrder = new Order({
+        name: 'first',
+        items: [{
+          sku: 'SKU-1',
+          quantity: 1,
+        }],
+      });
+      const secondOrder = new Order({
+        name: 'second',
+        items: [],
+      });
+      const originalItem = firstOrder.items[0];
+      const pushedItem = secondOrder.items.push(originalItem);
+
+      assert.notStrictEqual(pushedItem, originalItem);
+      assert.strictEqual(secondOrder.items[0], pushedItem);
+      assert.deepStrictEqual(pushedItem.toJSON(), originalItem.toJSON());
+      assert.strictEqual(originalItem.__parent, firstOrder);
+      assert.strictEqual(pushedItem.__parent, secondOrder);
+    });
+
+    it('should clone parented plain object list items assigned to another parent', function() {
+      const CardMasterPub = modelBuilder.define('CardMasterPubWithObjectItems', {
+        name: String,
+        images: [{
+          type: 'object',
+        }],
+      }, {
+        parentRef: true,
+      });
+
+      const firstPub = new CardMasterPub({
+        name: 'first',
+        images: [{
+          front: 'front.jpg',
+          thumbnail: 'thumbnail.jpg',
+        }],
+      });
+      const secondPub = new CardMasterPub({
+        name: 'second',
+        images: [firstPub.images[0]],
+      });
+
+      assert.notStrictEqual(secondPub.images[0], firstPub.images[0]);
+      assert.deepStrictEqual(secondPub.images[0], {
+        front: 'front.jpg',
+        thumbnail: 'thumbnail.jpg',
+      });
+      assert.strictEqual(firstPub.images[0].__parent, firstPub);
+      assert.strictEqual(secondPub.images[0].__parent, secondPub);
+    });
   });
 
   describe('Model instances with embedded models', function() {
