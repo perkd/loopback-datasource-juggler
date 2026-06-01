@@ -101,6 +101,41 @@ depends on specific connector, but common fields are:
 
 For connector-specific settings refer to connector's readme file.
 
+### MongoDB ObjectId validation
+
+When a model is attached to a MongoDB data source, properties declared with
+`mongodb.dataType: "ObjectID"` or `type: "ObjectID"` are registered with the
+model validation pipeline. This makes invalid ObjectId values fail through the
+normal `isValid()` / `ValidationError` path before the MongoDB connector attempts
+to persist the document.
+
+The registration happens once during `DataSource.setupDataAccess()` and caches
+the relevant field paths for the model. It covers top-level properties, ObjectId
+arrays, and ObjectId properties on nested embedded model definitions.
+
+For example:
+
+```json
+{
+  "properties": {
+    "placeId": {
+      "type": "String",
+      "mongodb": {
+        "dataType": "ObjectID"
+      }
+    }
+  }
+}
+```
+
+A value such as `{{spot.placeId}}` is rejected as a validation error instead of
+reaching connector-level ObjectId coercion. Optional values (`null`, `undefined`,
+and `""`) remain valid.
+
+Set `validateObjectIds: false` on model settings or datasource settings to opt
+out. Calls that explicitly pass `options.validate === false` also skip this
+validation, following the existing LoopBack validation contract.
+
 ## Creating a Model
 
 `DataSource` extends from `ModelBuilder`, which is a factory for plain model

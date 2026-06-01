@@ -1,3 +1,11 @@
+Next
+====
+
+ * fix: validate MongoDB ObjectId values during model validation (Zhang Li)
+
+   Models attached to the MongoDB connector now register validation rules for properties declared with `mongodb.dataType: "ObjectID"` or `type: "ObjectID"` when data access is configured. Invalid values, including unresolved template strings such as `{{spot.placeId}}`, fail through the normal `isValid()` / `ValidationError` path before connector persistence. The validation covers top-level properties, ObjectId arrays, and nested embedded model paths, and can be disabled with `validateObjectIds: false` on the model or datasource settings.
+
+
 2026-05-23, Version 6.0.0
 =========================
 
