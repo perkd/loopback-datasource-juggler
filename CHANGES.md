@@ -1,9 +1,20 @@
 Next
 ====
 
+2026-07-03, Version 6.0.2
+=========================
+
  * fix: validate MongoDB ObjectId values during model validation (Zhang Li)
 
    Models attached to the MongoDB connector now register validation rules for properties declared with `mongodb.dataType: "ObjectID"` or `type: "ObjectID"` when data access is configured. Invalid values, including unresolved template strings such as `{{spot.placeId}}`, fail through the normal `isValid()` / `ValidationError` path before connector persistence. The validation covers top-level properties, ObjectId arrays, and nested embedded model paths, and can be disabled with `validateObjectIds: false` on the model or datasource settings.
+
+ * fix: enforce ObjectId-or-absent validation semantics (Zhang Li)
+
+  MongoDB ObjectId model validation now enforces "ObjectId or absent" behavior. Only runtime `undefined` is treated as absent; `null`, empty string, `"undefined"`, and unresolved template strings are rejected with `objectid` validation errors before persistence.
+
+ * chore: upgrade package manager and dependency ranges (Zhang Li)
+
+   Upgrade embedded Yarn runtime from `4.15.0` to `4.17.0`, refresh lockfile metadata, and update dependency ranges (including `loopback-connector`, `neotraverse`, `uuid`, `eslint`, and commitlint tooling) before cutting this release.
 
 
 2026-05-23, Version 6.0.0
