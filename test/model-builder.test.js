@@ -133,7 +133,7 @@ describe('ModelBuilder', () => {
         });
         assert.equal(person.address, null);
       });
-      it('should change __parent reference and WARN when moving a child instance to an other parent', () => {
+      it('should clone child instance when assigning to another parent', () => {
         const person1 = new Person({
           name: 'Mitsos',
           address: {street: 'kopria', number: 11},
@@ -146,8 +146,11 @@ describe('ModelBuilder', () => {
           name: 'Allos',
           address,
         });
-        assert.equal(address.__parent, person2);
-        assert.equal(StrongGlobalize.prototype.warn.called, 1); // check we had a warning
+        assert.notStrictEqual(person2.address, address);
+        assert.deepEqual(person2.address.toJSON(), address.toJSON());
+        assert.equal(address.__parent, person1);
+        assert.equal(person2.address.__parent, person2);
+        assert.equal(StrongGlobalize.prototype.warn.called, 0);
       });
       it('should NOT provide the __parent property to any serialization of the instance', () => {
         const person = new Person({

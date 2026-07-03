@@ -14,13 +14,17 @@ const {
   registerMongoObjectIdValidations,
 } = require('../lib/mongo-objectid-validation');
 
-function createMongoConnector() {
+function createMongoConnector(recorder) {
   const connector = {
     name: 'mongodb',
     getDefaultIdType: function() {
       return function ObjectID(id) { return id; };
     },
     create: function(model, data, options, cb) {
+      if (recorder) {
+        recorder.createCalls = (recorder.createCalls || 0) + 1;
+        recorder.lastCreateData = data;
+      }
       process.nextTick(() => cb(null, '507f1f77bcf86cd799439011'));
     },
     initialize: function(dataSource, cb) {
@@ -31,9 +35,9 @@ function createMongoConnector() {
   return connector;
 }
 
-function createMongoDataSource() {
+function createMongoDataSource(recorder) {
   return new j.DataSource({
-    connector: createMongoConnector(),
+    connector: createMongoConnector(recorder),
     lazyConnect: true,
   });
 }
@@ -84,6 +88,8 @@ describe('mongo-objectid-validation', function() {
     it('accepts valid hex strings and rejects templates', function() {
       assert.equal(isValidObjectIdValue('666c78d9f2d1ff00392c13aa'), true);
       assert.equal(isValidObjectIdValue('{{spot.placeId}}'), false);
+      assert.equal(isValidObjectIdValue(undefined), true);
+      assert.equal(isValidObjectIdValue('undefined'), false);
       assert.equal(isValidObjectIdValue([
         '666c78d9f2d1ff00392c13aa',
         '507f1f77bcf86cd799439011',
@@ -92,16 +98,21 @@ describe('mongo-objectid-validation', function() {
         '666c78d9f2d1ff00392c13aa',
         '{{spot.placeId}}',
       ]), false);
-      assert.equal(isValidObjectIdValue(null), true);
-      assert.equal(isValidObjectIdValue(''), true);
+      assert.equal(isValidObjectIdValue([
+        '666c78d9f2d1ff00392c13aa',
+        'undefined',
+      ]), false);
+      assert.equal(isValidObjectIdValue(null), false);
+      assert.equal(isValidObjectIdValue(''), false);
     });
   });
 
   describe('registerMongoObjectIdValidations', function() {
-    let db, Fulfillment;
+    let db, Fulfillment, recorder;
 
     before(function() {
-      db = createMongoDataSource();
+      recorder = {};
+      db = createMongoDataSource(recorder);
 
       const Spot = db.createModel('SpotOidVal', {
         placeId: {
@@ -185,6 +196,36 @@ describe('mongo-objectid-validation', function() {
       assert.equal(valid, true);
     });
 
+    it('fails isValid when optional ObjectId fields are string undefined sentinels', async function() {
+      const inst = new Fulfillment({
+        orderId: '666c78d9f2d1ff00392c13aa',
+        placeId: 'undefined',
+        destination: {
+          placeId: 'undefined',
+        },
+      });
+
+      const valid = await isValidAsync(inst);
+      assert.equal(valid, false);
+      assert.ok(inst.errors.placeId);
+      assert.ok(inst.errors['destination.placeId']);
+    });
+
+    it('fails isValid when ObjectId fields are null or empty string', async function() {
+      const inst = new Fulfillment({
+        orderId: '666c78d9f2d1ff00392c13aa',
+        placeId: null,
+        destination: {
+          placeId: '',
+        },
+      });
+
+      const valid = await isValidAsync(inst);
+      assert.equal(valid, false);
+      assert.ok(inst.errors.placeId);
+      assert.ok(inst.errors['destination.placeId']);
+    });
+
     it('fails isValid for invalid ObjectId array items', async function() {
       const inst = new Fulfillment({
         orderId: '666c78d9f2d1ff00392c13aa',
@@ -215,6 +256,39 @@ describe('mongo-objectid-validation', function() {
           return true;
         },
       );
+    });
+
+    it('does not call connector create when ObjectId validation fails', async function() {
+      const beforeCalls = recorder.createCalls || 0;
+      await assert.rejects(
+        () => createAsync(Fulfillment, {
+          orderId: '666c78d9f2d1ff00392c13aa',
+          placeId: null,
+          destination: {
+            placeId: '666c78d9f2d1ff00392c13aa',
+          },
+        }),
+        err => err instanceof ValidationError,
+      );
+      assert.equal(recorder.createCalls || 0, beforeCalls);
+    });
+
+    it('removes undefined ObjectId fields before connector create', async function() {
+      const beforeCalls = recorder.createCalls || 0;
+      await createAsync(Fulfillment, {
+        orderId: '666c78d9f2d1ff00392c13aa',
+        placeId: undefined,
+        destination: {
+          placeId: undefined,
+        },
+      });
+
+      assert.equal(recorder.createCalls, beforeCalls + 1);
+      assert.ok(recorder.lastCreateData);
+      assert.equal('placeId' in recorder.lastCreateData, false);
+      if (recorder.lastCreateData.destination) {
+        assert.equal('placeId' in recorder.lastCreateData.destination, false);
+      }
     });
 
     it('does not register for non-mongodb connectors', function() {
