@@ -1,3 +1,13 @@
+# @perkd/loopback-datasource-juggler
+
+Formerly published as `loopback-datasource-juggler`.
+
+Published to GitHub Packages. Consumers typically alias:
+
+```bash
+yarn add loopback-datasource-juggler@npm:@perkd/loopback-datasource-juggler@^7.0.0
+```
+
 # 🚀 LoopBack DataSource Juggler
 
 ## v6.0.0 — Modernization (2026-05-23)

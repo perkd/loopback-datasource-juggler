@@ -1,8 +1,9 @@
 {
-  "name": "loopback-datasource-juggler",
-  "version": "6.0.2",
+  "name": "@perkd/loopback-datasource-juggler",
+  "version": "7.0.0",
   "publishConfig": {
-    "export-tests": true
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
   },
   "description": "LoopBack DataSource Juggler",
   "keywords": [
@@ -21,7 +22,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/loopbackio/loopback-datasource-juggler"
+    "url": "git+ssh://git@github.com/perkd/loopback-datasource-juggler.git"
   },
   "main": "index.js",
   "types": "index.d.ts",
@@ -64,5 +65,17 @@
     "loopback-connector-throwing": "file:./test/fixtures/loopback-connector-throwing",
     "typescript": "^6.0.3"
   },
-  "packageManager": "yarn@4.17.0"
+  "packageManager": "yarn@4.17.0",
+  "bugs": {
+    "url": "https://github.com/perkd/loopback-datasource-juggler/issues"
+  },
+  "homepage": "https://github.com/perkd/loopback-datasource-juggler#readme",
+  "files": [
+    "index.js",
+    "lib",
+    "types",
+    "docs.json",
+    "intl",
+    "README.md"
+  ]
 }

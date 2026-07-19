@@ -377,6 +377,35 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@perkd/loopback-datasource-juggler@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "@perkd/loopback-datasource-juggler@workspace:."
+  dependencies:
+    "@commitlint/cli": "npm:^21.2.0"
+    "@commitlint/config-conventional": "npm:^21.2.0"
+    "@types/node": "npm:^26.1.0"
+    async: "npm:^3.2.6"
+    async-iterators: "npm:^0.2.2"
+    bson-objectid: "npm:^2.0.4"
+    c8: "npm:^11.0.0"
+    change-case: "npm:5.4.4"
+    debug: "npm:^4.4.3"
+    depd: "npm:^2.0.0"
+    eslint: "npm:^10.6.0"
+    eslint-config-loopback: "npm:^14.0.0"
+    inflection: "npm:^3.0.2"
+    loopback-connector: "npm:^8.0.0"
+    loopback-connector-throwing: "file:./test/fixtures/loopback-connector-throwing"
+    minimatch: "npm:^10.2.5"
+    nanoid: "npm:3.3.12"
+    neotraverse: "npm:^1.0.1"
+    qs: "npm:^6.15.3"
+    strong-globalize: "npm:^6.0.6"
+    typescript: "npm:^6.0.3"
+    uuid: "npm:11.1.0"
+  languageName: unknown
+  linkType: soft
+
 "@simple-libs/child-process-utils@npm:^1.0.0":
   version: 1.0.2
   resolution: "@simple-libs/child-process-utils@npm:1.0.2"
@@ -1680,9 +1709,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"loopback-connector-throwing@file:./test/fixtures/loopback-connector-throwing::locator=loopback-datasource-juggler%40workspace%3A.":
+"loopback-connector-throwing@file:./test/fixtures/loopback-connector-throwing::locator=%40perkd%2Floopback-datasource-juggler%40workspace%3A.":
   version: 1.0.0
-  resolution: "loopback-connector-throwing@file:./test/fixtures/loopback-connector-throwing#./test/fixtures/loopback-connector-throwing::hash=65a8a7&locator=loopback-datasource-juggler%40workspace%3A."
+  resolution: "loopback-connector-throwing@file:./test/fixtures/loopback-connector-throwing#./test/fixtures/loopback-connector-throwing::hash=65a8a7&locator=%40perkd%2Floopback-datasource-juggler%40workspace%3A."
   checksum: 10c0/8a80041859cac60eb85321eb3922ecc858355e54bf7ef7a456cc904654852cdb1043288e4f9082373ed491426d465124f6d1ef5b87caedeab5faf8544984e9d1
   languageName: node
   linkType: hard
@@ -1700,35 +1729,6 @@ __metadata:
   checksum: 10c0/f7c151105fd546a6342512c8e147f8e655d585d6bebf2bf8104d3975d98c6f3f3fc5928baaddaa2c19c6b62439a64250c470f752cfbf81ac5d085efeee7fe585
   languageName: node
   linkType: hard
-
-"loopback-datasource-juggler@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "loopback-datasource-juggler@workspace:."
-  dependencies:
-    "@commitlint/cli": "npm:^21.2.0"
-    "@commitlint/config-conventional": "npm:^21.2.0"
-    "@types/node": "npm:^26.1.0"
-    async: "npm:^3.2.6"
-    async-iterators: "npm:^0.2.2"
-    bson-objectid: "npm:^2.0.4"
-    c8: "npm:^11.0.0"
-    change-case: "npm:5.4.4"
-    debug: "npm:^4.4.3"
-    depd: "npm:^2.0.0"
-    eslint: "npm:^10.6.0"
-    eslint-config-loopback: "npm:^14.0.0"
-    inflection: "npm:^3.0.2"
-    loopback-connector: "npm:^8.0.0"
-    loopback-connector-throwing: "file:./test/fixtures/loopback-connector-throwing"
-    minimatch: "npm:^10.2.5"
-    nanoid: "npm:3.3.12"
-    neotraverse: "npm:^1.0.1"
-    qs: "npm:^6.15.3"
-    strong-globalize: "npm:^6.0.6"
-    typescript: "npm:^6.0.3"
-    uuid: "npm:11.1.0"
-  languageName: unknown
-  linkType: soft
 
 "lru-cache@npm:^11.0.0":
   version: 11.5.1
