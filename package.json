@@ -1,6 +1,6 @@
 {
   "name": "@perkd/loopback-datasource-juggler",
-  "version": "7.0.0",
+  "version": "6.1.0",
   "publishConfig": {
     "registry": "https://npm.pkg.github.com",
     "access": "restricted"
