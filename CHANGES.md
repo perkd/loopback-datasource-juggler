@@ -1,6 +1,15 @@
 Next
 ====
 
+2026-08-21, Version 6.1.1
+=========================
+
+ * fix: skip ObjectId validation on auto-stamped generated ids (Zhang Li)
+
+   `setupDataAccess` stamps `connector.getDefaultIdType()` (ObjectID) onto every generated id, including models with `forceId: false`. ObjectId validation treated that stamp as a declared ObjectId field and rejected custom ids such as `1` or `'123'` before the connector ran. A generated function-typed ObjectID with `useDefaultIdType !== false` is no longer treated as ObjectId storage. Properties declared with `mongodb.dataType: "ObjectID"` or `type: "ObjectID"` (string), or a function-typed ObjectID with `useDefaultIdType: false`, still validate. The model definition shape is unchanged.
+
+
+
 2026-07-03, Version 6.0.2
 =========================
 

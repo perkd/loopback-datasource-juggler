@@ -109,6 +109,33 @@ model validation pipeline. This makes invalid ObjectId values fail through the
 normal `isValid()` / `ValidationError` path before the MongoDB connector attempts
 to persist the document.
 
+Generated `id` properties that only received the connector's
+`getDefaultIdType()` (ObjectID) are not treated as declared ObjectId fields.
+`forceId: false` can still supply custom ids such as `1` or `"123"`.
+
+This skip also applies when a property is declared as a function-typed
+ObjectID (`type: ObjectID`) **and** `generated: true` **and**
+`useDefaultIdType` is not `false`. Juggler cannot tell that declaration
+apart from an auto-stamped default id, so it does not register strict
+ObjectId validation for it. To keep strict validation on a generated id,
+declare the storage type explicitly:
+
+```json
+{
+  "id": {
+    "type": "String",
+    "id": true,
+    "generated": true,
+    "mongodb": {
+      "dataType": "ObjectID"
+    }
+  }
+}
+```
+
+Or set `useDefaultIdType: false` so the function-typed ObjectID is treated
+as the developer's type, not the connector default.
+
 The registration happens once during `DataSource.setupDataAccess()` and caches
 the relevant field paths for the model. It covers top-level properties, ObjectId
 arrays, and ObjectId properties on nested embedded model definitions.

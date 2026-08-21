@@ -10,6 +10,7 @@ const j = require('../');
 const ValidationError = j.ValidationError;
 const {
   collectObjectIdPaths,
+  hasObjectIdStorage,
   isValidObjectIdValue,
   registerMongoObjectIdValidations,
 } = require('../lib/mongo-objectid-validation');
@@ -81,6 +82,47 @@ describe('mongo-objectid-validation', function() {
       const fullPaths = paths.map(p => p.fullPath).sort();
 
       assert.deepEqual(fullPaths, ['destination.placeId', 'orderId']);
+    });
+  });
+
+  describe('hasObjectIdStorage', function() {
+    it('treats mongodb.dataType as ObjectId storage', function() {
+      assert.equal(hasObjectIdStorage({
+        type: String,
+        mongodb: {dataType: 'ObjectID'},
+      }), true);
+    });
+
+    it('treats an explicit ObjectID type as ObjectId storage', function() {
+      function ObjectID() {}
+      assert.equal(hasObjectIdStorage({type: ObjectID}), true);
+      assert.equal(hasObjectIdStorage({type: 'ObjectID'}), true);
+    });
+
+    it('does not treat an auto-stamped generated id as ObjectId storage', function() {
+      function ObjectID() {}
+      assert.equal(hasObjectIdStorage({
+        type: ObjectID,
+        generated: true,
+      }), false);
+    });
+
+    it('keeps mongodb.dataType on a generated id', function() {
+      function ObjectID() {}
+      assert.equal(hasObjectIdStorage({
+        type: ObjectID,
+        generated: true,
+        mongodb: {dataType: 'ObjectID'},
+      }), true);
+    });
+
+    it('keeps an explicit ObjectID type when useDefaultIdType is false', function() {
+      function ObjectID() {}
+      assert.equal(hasObjectIdStorage({
+        type: ObjectID,
+        generated: true,
+        useDefaultIdType: false,
+      }), true);
     });
   });
 
@@ -289,6 +331,76 @@ describe('mongo-objectid-validation', function() {
       if (recorder.lastCreateData.destination) {
         assert.equal('placeId' in recorder.lastCreateData.destination, false);
       }
+    });
+
+    it('does not validate auto-stamped generated ids so custom ids still work', async function() {
+      const Customer = db.createModel(
+        'CustomerCustomIdOidVal',
+        {name: String},
+        {forceId: false},
+      );
+
+      const idProp = Customer.definition.properties.id;
+      assert.equal(idProp.generated, true);
+      assert.equal(idProp.defaultIdTypeApplied, undefined);
+      assert.equal(hasObjectIdStorage(idProp), false);
+
+      const inst = new Customer({id: 1, name: 'John'});
+      const valid = await isValidAsync(inst);
+      assert.equal(valid, true);
+
+      const beforeCalls = recorder.createCalls || 0;
+      await createAsync(Customer, {id: 1, name: 'John'});
+      assert.equal(recorder.createCalls, beforeCalls + 1);
+      assert.equal(recorder.lastCreateData.id, 1);
+    });
+
+    it('accepts a short string id on a forceId: false model', async function() {
+      const Post = db.createModel(
+        'PostCustomIdOidVal',
+        {title: String},
+        {forceId: false},
+      );
+
+      const inst = new Post({id: '123', title: 'a'});
+      const valid = await isValidAsync(inst);
+      assert.equal(valid, true);
+    });
+
+    it('still validates an explicit ObjectId field on a forceId: false model', async function() {
+      const Order = db.createModel(
+        'OrderCustomIdOidVal',
+        {
+          placeId: {
+            type: String,
+            mongodb: {dataType: 'ObjectID'},
+          },
+        },
+        {forceId: false},
+      );
+
+      const inst = new Order({id: 1, placeId: '{{spot.placeId}}'});
+      const valid = await isValidAsync(inst);
+      assert.equal(valid, false);
+      assert.ok(inst.errors.placeId);
+      assert.equal(inst.errors.id, undefined);
+    });
+
+    it('still validates a generated id that declared mongodb.dataType ObjectID', async function() {
+      const Ticket = db.createModel('TicketOidIdVal', {
+        id: {
+          type: String,
+          id: true,
+          generated: true,
+          mongodb: {dataType: 'ObjectID'},
+        },
+        name: String,
+      }, {forceId: false});
+
+      const inst = new Ticket({id: 'abc', name: 'x'});
+      const valid = await isValidAsync(inst);
+      assert.equal(valid, false);
+      assert.ok(inst.errors.id);
     });
 
     it('does not register for non-mongodb connectors', function() {
