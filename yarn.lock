@@ -383,6 +383,7 @@ __metadata:
   dependencies:
     "@commitlint/cli": "npm:^21.2.2"
     "@commitlint/config-conventional": "npm:^21.2.2"
+    "@perkd/release": "npm:0.1.5"
     "@types/node": "npm:^26.2.0"
     async: "npm:^3.2.6"
     async-iterators: "npm:^0.2.2"
@@ -395,7 +396,7 @@ __metadata:
     eslint-config-loopback: "npm:^14.0.0"
     inflection: "npm:^3.0.2"
     loopback-connector: "npm:^8.0.2"
-    loopback-connector-throwing: "file:./test/fixtures/loopback-connector-throwing"
+    loopback-connector-throwing: "file:./tests/fixtures/loopback-connector-throwing"
     minimatch: "npm:^10.2.6"
     nanoid: "npm:^6.0.1"
     neotraverse: "npm:^1.0.1"
@@ -405,6 +406,15 @@ __metadata:
     uuid: "npm:11.1.0"
   languageName: unknown
   linkType: soft
+
+"@perkd/release@npm:0.1.5":
+  version: 0.1.5
+  resolution: "@perkd/release@npm:0.1.5::__archiveUrl=https%3A%2F%2Fnpm.pkg.github.com%2Fdownload%2F%40perkd%2Frelease%2F0.1.5%2F65d5b7c45a1aa915bf45d7b006291403ab26543e"
+  bin:
+    perkd-release: ./bin/perkd-release.mjs
+  checksum: 10c0/6713eebcb4e903b463cfc1cb7c052a52b9bc885f133c3e24c645ca6c57a2ec27ff16fb85628567ec6abf1255aff4793a97dae5555fec5fad9769bd590d3707c5
+  languageName: node
+  linkType: hard
 
 "@simple-libs/child-process-utils@npm:^2.0.0":
   version: 2.0.0
@@ -1640,9 +1650,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"loopback-connector-throwing@file:./test/fixtures/loopback-connector-throwing::locator=%40perkd%2Floopback-datasource-juggler%40workspace%3A.":
+"loopback-connector-throwing@file:./tests/fixtures/loopback-connector-throwing::locator=%40perkd%2Floopback-datasource-juggler%40workspace%3A.":
   version: 1.0.0
-  resolution: "loopback-connector-throwing@file:./test/fixtures/loopback-connector-throwing#./test/fixtures/loopback-connector-throwing::hash=65a8a7&locator=%40perkd%2Floopback-datasource-juggler%40workspace%3A."
+  resolution: "loopback-connector-throwing@file:./tests/fixtures/loopback-connector-throwing#./tests/fixtures/loopback-connector-throwing::hash=65a8a7&locator=%40perkd%2Floopback-datasource-juggler%40workspace%3A."
   checksum: 10c0/8a80041859cac60eb85321eb3922ecc858355e54bf7ef7a456cc904654852cdb1043288e4f9082373ed491426d465124f6d1ef5b87caedeab5faf8544984e9d1
   languageName: node
   linkType: hard
