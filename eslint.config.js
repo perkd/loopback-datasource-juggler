@@ -102,7 +102,7 @@ module.exports = [
     },
   },
   {
-    files: ['test/**/*.js'],
+    files: ['tests/**/*.js'],
     rules: {
       'max-len': 'off',
     },

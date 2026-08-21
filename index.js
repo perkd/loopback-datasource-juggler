@@ -20,7 +20,7 @@ Object.defineProperty(exports, 'version', {
   get: function() { return require('./package.json').version; },
 });
 
-const commonTest = './test/common_test';
+const commonTest = './tests/common_test';
 Object.defineProperty(exports, 'test', {
   get: function() { return require(commonTest); },
 });

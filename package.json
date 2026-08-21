@@ -34,7 +34,7 @@
     "build": "yarn build-ts-types",
     "build-ts-types": "tsc -p tsconfig.json --outDir dist",
     "pretest": "yarn build",
-    "test": "c8 node --require ./test/init.js --test --test-reporter=spec --test-timeout=10000 --test-concurrency=1 \"test/**/*.test.js\"",
+    "test": "c8 node --require ./tests/init.js --test --test-reporter=spec --test-timeout=10000 --test-concurrency=1 'tests/*.test.js'",
     "posttest": "yarn lint",
     "update": "ncu -u -x nanoid",
     "reinstall": "rm -rf node_modules/ && yarn install --immutable"
