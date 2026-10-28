@@ -1,6 +1,6 @@
 {
   "name": "@perkd/loopback-datasource-juggler",
-  "version": "6.1.2",
+  "version": "6.1.3",
   "description": "LoopBack DataSource Juggler",
   "keywords": [
     "StrongLoop",
