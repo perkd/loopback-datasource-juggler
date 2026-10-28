@@ -144,8 +144,14 @@ describe('mongo-objectid-validation', function() {
         '666c78d9f2d1ff00392c13aa',
         'undefined',
       ]), false);
-      assert.equal(isValidObjectIdValue(null), false);
+      assert.equal(isValidObjectIdValue(null), true);
       assert.equal(isValidObjectIdValue(''), false);
+      assert.equal(isValidObjectIdValue([
+        '666c78d9f2d1ff00392c13aa',
+        null,
+      ]), false);
+      assert.equal(isValidObjectIdValue([null]), false);
+      assert.equal(isValidObjectIdValue([undefined]), false);
     });
   });
 
@@ -253,19 +259,63 @@ describe('mongo-objectid-validation', function() {
       assert.ok(inst.errors['destination.placeId']);
     });
 
-    it('fails isValid when ObjectId fields are null or empty string', async function() {
+    it('passes isValid when optional ObjectId fields are null', async function() {
       const inst = new Fulfillment({
+        id: null,
         orderId: '666c78d9f2d1ff00392c13aa',
         placeId: null,
+        relatedIds: null,
         destination: {
-          placeId: '',
+          placeId: null,
+        },
+      });
+
+      const valid = await isValidAsync(inst);
+      assert.equal(valid, true);
+    });
+
+    it('fails isValid when an ObjectId field is an empty string', async function() {
+      const inst = new Fulfillment({
+        orderId: '666c78d9f2d1ff00392c13aa',
+        placeId: '',
+        destination: {
+          placeId: '666c78d9f2d1ff00392c13aa',
         },
       });
 
       const valid = await isValidAsync(inst);
       assert.equal(valid, false);
       assert.ok(inst.errors.placeId);
-      assert.ok(inst.errors['destination.placeId']);
+    });
+
+    it('fails isValid when an ObjectId array contains null', async function() {
+      const inst = new Fulfillment({
+        orderId: '666c78d9f2d1ff00392c13aa',
+        placeId: '666c78d9f2d1ff00392c13aa',
+        relatedIds: [
+          '666c78d9f2d1ff00392c13aa',
+          null,
+        ],
+      });
+
+      const valid = await isValidAsync(inst);
+      assert.equal(valid, false);
+      assert.ok(inst.errors.relatedIds);
+    });
+
+    it('rejects null on a required ObjectId through presence', async function() {
+      const RequiredFk = db.createModel('RequiredFkOidVal', {
+        placeId: {
+          type: String,
+          required: true,
+          mongodb: {dataType: 'ObjectID'},
+        },
+      }, {idInjection: false});
+
+      const inst = new RequiredFk({placeId: null});
+      const valid = await isValidAsync(inst);
+      assert.equal(valid, false);
+      assert.ok(inst.errors.codes.placeId.includes('presence'));
     });
 
     it('fails isValid for invalid ObjectId array items', async function() {
@@ -305,7 +355,7 @@ describe('mongo-objectid-validation', function() {
       await assert.rejects(
         () => createAsync(Fulfillment, {
           orderId: '666c78d9f2d1ff00392c13aa',
-          placeId: null,
+          placeId: '',
           destination: {
             placeId: '666c78d9f2d1ff00392c13aa',
           },
@@ -313,6 +363,21 @@ describe('mongo-objectid-validation', function() {
         err => err instanceof ValidationError,
       );
       assert.equal(recorder.createCalls || 0, beforeCalls);
+    });
+
+    it('persists a null optional ObjectId', async function() {
+      const beforeCalls = recorder.createCalls || 0;
+      await createAsync(Fulfillment, {
+        orderId: '666c78d9f2d1ff00392c13aa',
+        placeId: null,
+        destination: {
+          placeId: null,
+        },
+      });
+
+      assert.equal(recorder.createCalls, beforeCalls + 1);
+      assert.equal(recorder.lastCreateData.placeId, null);
+      assert.equal(recorder.lastCreateData.destination.placeId, null);
     });
 
     it('removes undefined ObjectId fields before connector create', async function() {

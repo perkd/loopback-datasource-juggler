@@ -156,8 +156,10 @@ For example:
 ```
 
 A value such as `{{spot.placeId}}` is rejected as a validation error instead of
-reaching connector-level ObjectId coercion. Optional values (`null`, `undefined`,
-and `""`) remain valid.
+reaching connector-level ObjectId coercion. A scalar `null` or `undefined` skips
+this check, matching automatic date validation. A property marked `required: true`
+still fails presence validation. `""`, the string `"undefined"`, and a `null` or
+`undefined` element inside an ObjectId array are rejected.
 
 Set `validateObjectIds: false` on model settings or datasource settings to opt
 out. Calls that explicitly pass `options.validate === false` also skip this

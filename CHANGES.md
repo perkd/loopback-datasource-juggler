@@ -1,6 +1,11 @@
 Next
 ====
 
+ * fix: accept null on optional ObjectId properties (Zhang Li)
+
+   Scalar `null` on an ObjectId property is treated like a null `Date`: the ObjectId check does not apply, and `required: true` still rejects it through presence validation. `undefined` stays valid. Empty strings, the string `"undefined"`, unresolved templates, and `null` or `undefined` elements inside an ObjectId array stay invalid.
+
+
 2026-08-21, Version 6.1.1
 =========================
 
